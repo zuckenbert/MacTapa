@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MacTapa - Da um tapa no Mac. Ele reage.</title>
+    <meta name="description" content="MacTapa detecta tapas no seu MacBook pelo acelerometro e toca sons brasileiros hilarios. Gemidao, eita, vish e muito mais. Gratis para Apple Silicon.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="MacTapa - Da um tapa no Mac. Ele reage.">
+    <meta property="og:description" content="Seu MacBook detecta tapas e toca sons brasileiros hilarios. Gemidao, eita, vish e muito mais.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://github.com/zuckenbert/MacTapa">
+    <meta property="og:image" content="https://raw.githubusercontent.com/zuckenbert/MacTapa/main/Resources/og-image.png">
+    <meta property="og:locale" content="pt_BR">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="MacTapa - Da um tapa no Mac. Ele reage.">
+    <meta name="twitter:description" content="Seu MacBook detecta tapas e toca sons brasileiros hilarios.">
+
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖐️</text></svg>">
+
+    <style>
+        /* ========== RESET & BASE ========== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --pink: #ff2d78;
+            --green: #39ff14;
+            --yellow: #ffe600;
+            --cyan: #00f0ff;
+            --bg: #0a0a0f;
+            --bg-card: #12121a;
+            --bg-card-hover: #1a1a2e;
+            --text: #e8e8ef;
+            --text-muted: #8888a0;
+            --glow-pink: 0 0 40px rgba(255, 45, 120, 0.3);
+            --glow-green: 0 0 40px rgba(57, 255, 20, 0.3);
+            --glow-yellow: 0 0 40px rgba(255, 230, 0, 0.3);
+        }
+
+        html {
+            scroll-behavior: smooth;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ========== NOISE OVERLAY ========== */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* ========== TYPOGRAPHY ========== */
+        h1, h2, h3 {
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+        }
+
+        /* ========== NAVIGATION ========== */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-logo {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--pink);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-logo span {
+            font-size: 1.6rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--pink);
+        }
+
+        .nav-cta {
+            background: var(--pink);
+            color: #fff !important;
+            padding: 0.5rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600 !important;
+            transition: transform 0.2s, box-shadow 0.2s !important;
+        }
+
+        .nav-cta:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--glow-pink);
+        }
+
+        /* ========== HERO ========== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 8rem 2rem 4rem;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(255, 45, 120, 0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 45, 120, 0.1);
+            border: 1px solid rgba(255, 45, 120, 0.2);
+            padding: 0.4rem 1rem;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            color: var(--pink);
+            margin-bottom: 2rem;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        .hero-badge .dot {
+            width: 8px;
+            height: 8px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 8vw, 6rem);
+            margin-bottom: 0.5rem;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .hero h1 .highlight {
+            background: linear-gradient(135deg, var(--pink), var(--yellow));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-sub {
+            font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 1rem auto 3rem;
+            animation: fadeInUp 0.8s ease 0.2s both;
+        }
+
+        /* ========== MACBOOK ILLUSTRATION ========== */
+        .macbook-container {
+            position: relative;
+            margin: 2rem auto;
+            animation: fadeInUp 1s ease 0.4s both;
+        }
+
+        .macbook {
+            width: 340px;
+            height: 220px;
+            background: linear-gradient(145deg, #2a2a3a, #1a1a28);
+            border-radius: 16px 16px 0 0;
+            position: relative;
+            border: 2px solid #333;
+            overflow: hidden;
+            animation: macbook-idle 3s ease-in-out infinite;
+        }
+
+        .macbook-screen {
+            position: absolute;
+            inset: 12px;
+            background: linear-gradient(135deg, #0f0f1a, #1a1a2e);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .macbook-screen-content {
+            text-align: center;
+            z-index: 2;
+        }
+
+        .macbook-screen-content .emoji-big {
+            font-size: 3.5rem;
+            display: block;
+            margin-bottom: 0.3rem;
+            animation: slap-emoji 2s ease-in-out infinite;
+        }
+
+        .macbook-screen-content .screen-text {
+            font-size: 0.8rem;
+            color: var(--green);
+            font-weight: 700;
+            font-family: monospace;
+        }
+
+        /* Sound wave rings on screen */
+        .sound-wave {
+            position: absolute;
+            border: 2px solid var(--pink);
+            border-radius: 50%;
+            opacity: 0;
+            animation: sound-ring 2s ease-out infinite;
+        }
+
+        .sound-wave:nth-child(1) { width: 60px; height: 60px; animation-delay: 0s; }
+        .sound-wave:nth-child(2) { width: 100px; height: 100px; animation-delay: 0.4s; }
+        .sound-wave:nth-child(3) { width: 140px; height: 140px; animation-delay: 0.8s; }
+
+        @keyframes sound-ring {
+            0% { opacity: 0.6; transform: scale(0.5); }
+            100% { opacity: 0; transform: scale(1.5); }
+        }
+
+        .macbook-base {
+            width: 380px;
+            height: 14px;
+            background: linear-gradient(to bottom, #3a3a4a, #2a2a3a);
+            border-radius: 0 0 8px 8px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .macbook-base::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background: #444;
+            border-radius: 0 0 4px 4px;
+        }
+
+        .macbook-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 12px;
+            background: #1a1a28;
+            border-radius: 0 0 10px 10px;
+            border: 2px solid #333;
+            border-top: none;
+        }
+
+        .macbook-notch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            background: #2a2a3a;
+            border-radius: 50%;
+        }
+
+        /* Hand slap animation */
+        .slap-hand {
+            position: absolute;
+            font-size: 4rem;
+            right: -60px;
+            top: 20px;
+            animation: slap-motion 2.5s ease-in-out infinite;
+            transform-origin: right center;
+            filter: drop-shadow(0 0 20px rgba(255, 45, 120, 0.4));
+        }
+
+        @keyframes slap-motion {
+            0%, 100% { transform: rotate(-20deg) translateX(30px); }
+            40% { transform: rotate(-20deg) translateX(30px); }
+            50% { transform: rotate(10deg) translateX(-20px); }
+            55% { transform: rotate(10deg) translateX(-20px); }
+            70% { transform: rotate(-20deg) translateX(30px); }
+        }
+
+        @keyframes macbook-idle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+
+        /* Shake on "impact" */
+        .macbook-container.slapped .macbook {
+            animation: macbook-shake 0.4s ease;
+        }
+
+        @keyframes macbook-shake {
+            0%, 100% { transform: translateX(0) rotate(0); }
+            20% { transform: translateX(-8px) rotate(-2deg); }
+            40% { transform: translateX(6px) rotate(1.5deg); }
+            60% { transform: translateX(-4px) rotate(-1deg); }
+            80% { transform: translateX(2px) rotate(0.5deg); }
+        }
+
+        @keyframes slap-emoji {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        /* Impact particles */
+        .impact-particles {
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            font-size: 1.2rem;
+            opacity: 0;
+        }
+
+        .macbook-container.slapped .particle {
+            animation: particle-burst 0.6s ease-out forwards;
+        }
+
+        .particle:nth-child(1) { animation-delay: 0.05s; }
+        .particle:nth-child(2) { animation-delay: 0.1s; }
+        .particle:nth-child(3) { animation-delay: 0.15s; }
+        .particle:nth-child(4) { animation-delay: 0.08s; }
+
+        @keyframes particle-burst {
+            0% { opacity: 1; transform: translate(0, 0) scale(1); }
+            100% { opacity: 0; transform: translate(var(--px), var(--py)) scale(0.3); }
+        }
+
+        /* ========== CTA BUTTONS ========== */
+        .hero-cta {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            animation: fadeInUp 0.8s ease 0.6s both;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 1rem 2rem;
+            border-radius: 14px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.25s ease;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--pink), #ff5c8d);
+            color: #fff;
+            box-shadow: 0 4px 24px rgba(255, 45, 120, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 40px rgba(255, 45, 120, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-big {
+            padding: 1.2rem 3rem;
+            font-size: 1.3rem;
+            border-radius: 16px;
+        }
+
+        /* ========== COUNTER BAR ========== */
+        .counter-bar {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            padding: 2rem;
+            margin: 0 2rem;
+            background: var(--bg-card);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            z-index: 2;
+            flex-wrap: wrap;
+        }
+
+        .counter-item {
+            text-align: center;
+        }
+
+        .counter-number {
+            font-size: 2.4rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .counter-number.pink { color: var(--pink); }
+        .counter-number.green { color: var(--green); }
+        .counter-number.yellow { color: var(--yellow); }
+
+        .counter-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+        }
+
+        /* ========== SECTIONS ========== */
+        section {
+            padding: 6rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-header h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            margin-bottom: 1rem;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .section-tag {
+            display: inline-block;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--green);
+            margin-bottom: 0.8rem;
+        }
+
+        /* ========== HOW IT WORKS ========== */
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 2rem;
+        }
+
+        .step {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255, 45, 120, 0.2);
+            background: var(--bg-card-hover);
+        }
+
+        .step-number {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            font-size: 4rem;
+            font-weight: 900;
+            color: rgba(255, 255, 255, 0.03);
+            line-height: 1;
+        }
+
+        .step-icon {
+            font-size: 3rem;
+            margin-bottom: 1.2rem;
+            display: block;
+        }
+
+        .step h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.6rem;
+        }
+
+        .step p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* ========== FEATURES ========== */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            border-color: rgba(57, 255, 20, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        .feature-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-card p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* ========== SOUNDS ========== */
+        .sounds-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 1rem;
+        }
+
+        .sound-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sound-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent, rgba(255, 45, 120, 0.05));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .sound-card:hover::before {
+            opacity: 1;
+        }
+
+        .sound-card:hover {
+            border-color: var(--pink);
+            transform: scale(1.04);
+            box-shadow: var(--glow-pink);
+        }
+
+        .sound-card.playing {
+            border-color: var(--green);
+            box-shadow: var(--glow-green);
+        }
+
+        .sound-card.playing .sound-icon {
+            animation: sound-bounce 0.3s ease;
+        }
+
+        @keyframes sound-bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
+
+        .sound-icon {
+            font-size: 2.4rem;
+            display: block;
+            margin-bottom: 0.6rem;
+            transition: transform 0.2s;
+        }
+
+        .sound-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .sound-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .sound-free-tag {
+            display: inline-block;
+            background: rgba(57, 255, 20, 0.1);
+            color: var(--green);
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0.15rem 0.5rem;
+            border-radius: 100px;
+            margin-top: 0.4rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ========== PACKS ========== */
+        .packs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .pack-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            padding: 2.5rem 2rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .pack-card:hover {
+            border-color: rgba(255, 230, 0, 0.3);
+            transform: translateY(-3px);
+        }
+
+        .pack-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .pack-card.pack-futebol::before {
+            background: linear-gradient(90deg, var(--green), var(--yellow));
+        }
+
+        .pack-card.pack-funk::before {
+            background: linear-gradient(90deg, var(--pink), var(--cyan));
+        }
+
+        .pack-card.pack-meme::before {
+            background: linear-gradient(90deg, var(--yellow), var(--pink));
+        }
+
+        .pack-badge {
+            display: inline-block;
+            background: rgba(255, 230, 0, 0.1);
+            color: var(--yellow);
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.25rem 0.7rem;
+            border-radius: 100px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 1rem;
+        }
+
+        .pack-icon {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 1rem;
+        }
+
+        .pack-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .pack-card p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .pack-sounds-list {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .pack-sounds-list li {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .pack-price {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--yellow);
+        }
+
+        .pack-price small {
+            font-size: 0.8rem;
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+
+        .btn-pack {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-top: 1rem;
+            padding: 0.7rem 1.4rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            color: var(--text);
+            background: rgba(255, 230, 0, 0.08);
+            border: 1px solid rgba(255, 230, 0, 0.2);
+            cursor: not-allowed;
+            opacity: 0.7;
+            transition: all 0.2s;
+        }
+
+        /* ========== TECH REQUIREMENTS ========== */
+        .tech-section {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 3rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .tech-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.8rem;
+        }
+
+        .tech-item-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .tech-item-text strong {
+            display: block;
+            font-size: 0.95rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .tech-item-text span {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .sudo-warning {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: rgba(255, 230, 0, 0.05);
+            border: 1px solid rgba(255, 230, 0, 0.15);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .sudo-warning code {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: var(--yellow);
+        }
+
+        /* ========== FINAL CTA ========== */
+        .final-cta {
+            text-align: center;
+            padding: 8rem 2rem;
+            position: relative;
+        }
+
+        .final-cta::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(57, 255, 20, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .final-cta h2 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            margin-bottom: 1rem;
+        }
+
+        .final-cta p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 500px;
+            margin: 0 auto 2.5rem;
+        }
+
+        /* ========== FOOTER ========== */
+        footer {
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--pink);
+        }
+
+        .footer-love {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        /* ========== ANIMATIONS ========== */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ========== MOBILE ========== */
+        @media (max-width: 768px) {
+            nav {
+                padding: 0.8rem 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .hero {
+                padding: 6rem 1.5rem 3rem;
+            }
+
+            .macbook {
+                width: 260px;
+                height: 170px;
+            }
+
+            .macbook-base {
+                width: 290px;
+            }
+
+            .slap-hand {
+                font-size: 3rem;
+                right: -40px;
+                top: 10px;
+            }
+
+            .counter-bar {
+                gap: 1.5rem;
+                padding: 1.5rem 1rem;
+                margin: 0 1rem;
+            }
+
+            .counter-number {
+                font-size: 1.8rem;
+            }
+
+            section {
+                padding: 4rem 1.5rem;
+            }
+
+            .tech-section {
+                padding: 2rem 1.5rem;
+            }
+
+            .sounds-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .packs-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-cta {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn-big {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sounds-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.6rem;
+            }
+
+            .sound-card {
+                padding: 1rem 0.6rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ========== SCROLLBAR ========== */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- NAV -->
+    <nav>
+        <a href="#" class="nav-logo">
+            <span>🖐️</span> MacTapa
+        </a>
+        <ul class="nav-links">
+            <li><a href="#como-funciona">Como funciona</a></li>
+            <li><a href="#sons">Sons</a></li>
+            <li><a href="#packs">Packs</a></li>
+            <li><a href="https://github.com/zuckenbert/MacTapa" target="_blank" rel="noopener">GitHub</a></li>
+            <li><a href="https://github.com/zuckenbert/MacTapa/releases" target="_blank" rel="noopener" class="nav-cta">Download</a></li>
+        </ul>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero" id="hero">
+        <div class="hero-badge">
+            <span class="dot"></span>
+            v1.0 - Open Source e gratuito
+        </div>
+
+        <h1>
+            Da um tapa.<br>
+            <span class="highlight">Ele geme.</span>
+        </h1>
+
+        <p class="hero-sub">
+            Seu MacBook detecta tapas fisicos pelo acelerometro e solta sons brasileiros hilarios. Gemidao, eita, vish... voce escolhe.
+        </p>
+
+        <!-- MacBook Illustration -->
+        <div class="macbook-container" id="macbook">
+            <div class="slap-hand">🖐️</div>
+            <div class="macbook">
+                <div class="macbook-notch"></div>
+                <div class="macbook-screen">
+                    <div class="sound-wave"></div>
+                    <div class="sound-wave"></div>
+                    <div class="sound-wave"></div>
+                    <div class="macbook-screen-content">
+                        <span class="emoji-big" id="screen-emoji">😩</span>
+                        <span class="screen-text" id="screen-text">GEMIDAO.mp3</span>
+                    </div>
+                </div>
+            </div>
+            <div class="macbook-base"></div>
+            <div class="impact-particles">
+                <span class="particle" style="--px: 40px; --py: -60px;">💥</span>
+                <span class="particle" style="--px: -30px; --py: -80px;">⭐</span>
+                <span class="particle" style="--px: 60px; --py: 20px;">🔊</span>
+                <span class="particle" style="--px: -50px; --py: -30px;">😂</span>
+            </div>
+        </div>
+
+        <div class="hero-cta">
+            <a href="https://github.com/zuckenbert/MacTapa/releases" target="_blank" rel="noopener" class="btn btn-primary btn-big">
+                🖐️ Baixar Gratis
+            </a>
+            <a href="https://github.com/zuckenbert/MacTapa" target="_blank" rel="noopener" class="btn btn-secondary btn-big">
+                ⭐ Ver no GitHub
+            </a>
+        </div>
+    </section>
+
+    <!-- COUNTER BAR -->
+    <div class="counter-bar reveal">
+        <div class="counter-item">
+            <div class="counter-number pink" id="counter-slaps">0</div>
+            <div class="counter-label">tapas dados hoje</div>
+        </div>
+        <div class="counter-item">
+            <div class="counter-number green" id="counter-sounds">8</div>
+            <div class="counter-label">sons inclusos</div>
+        </div>
+        <div class="counter-item">
+            <div class="counter-number yellow" id="counter-weight">2</div>
+            <div class="counter-label">MB no total</div>
+        </div>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <section id="como-funciona">
+        <div class="section-header reveal">
+            <span class="section-tag">Simples assim</span>
+            <h2>Como funciona?</h2>
+            <p>Tres passos pra transformar violencia em comedia.</p>
+        </div>
+
+        <div class="steps">
+            <div class="step reveal">
+                <span class="step-number">1</span>
+                <span class="step-icon">📥</span>
+                <h3>Baixa e abre</h3>
+                <p>Instala o MacTapa, roda com <code>sudo</code> e ele fica quietinho na menu bar.</p>
+            </div>
+            <div class="step reveal">
+                <span class="step-number">2</span>
+                <span class="step-icon">🖐️</span>
+                <h3>Da o tapa</h3>
+                <p>Pode ser forte, pode ser de leve. O acelerometro do Mac detecta tudo.</p>
+            </div>
+            <div class="step reveal">
+                <span class="step-number">3</span>
+                <span class="step-icon">🔊</span>
+                <h3>Ele reage</h3>
+                <p>Um som brasileiro aleatorio toca. Gemidao no meio da reuniao? Culpa sua.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section id="features">
+        <div class="section-header reveal">
+            <span class="section-tag">Por que usar</span>
+            <h2>Recursos</h2>
+            <p>Porque seu Mac merecia mais personalidade.</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card reveal">
+                <span class="feature-icon">🎛️</span>
+                <h3>Menu bar app</h3>
+                <p>Fica escondido na barra de menus. Ninguem sabe que esta ali ate voce levar um tapa na mesa.</p>
+            </div>
+            <div class="feature-card reveal">
+                <span class="feature-icon">⚡</span>
+                <h3>Ultra leve</h3>
+                <p>Menos de 2MB. Roda em background sem consumir bateria. Seu Mac nem percebe.</p>
+            </div>
+            <div class="feature-card reveal">
+                <span class="feature-icon">🎯</span>
+                <h3>Sensibilidade ajustavel</h3>
+                <p>Tapinha carinhoso ou soco de MMA? Voce calibra a intensidade do jeito que quiser.</p>
+            </div>
+            <div class="feature-card reveal">
+                <span class="feature-icon">🍎</span>
+                <h3>Apple Silicon nativo</h3>
+                <p>Feito especificamente para M1, M2, M3 e M4. Acelerometro real, nada de gambiarra.</p>
+            </div>
+            <div class="feature-card reveal">
+                <span class="feature-icon">🎵</span>
+                <h3>8 sons gratuitos</h3>
+                <p>Gemidao, eita, vish, ai, opa, uai, oxe e socorro. O essencial do brasileiro.</p>
+            </div>
+            <div class="feature-card reveal">
+                <span class="feature-icon">🔓</span>
+                <h3>Open source</h3>
+                <p>Codigo aberto no GitHub. Quer adicionar o som do Faustao? Manda um PR.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SOUNDS -->
+    <section id="sons">
+        <div class="section-header reveal">
+            <span class="section-tag">Biblioteca de sons</span>
+            <h2>Os sons que vem de graca</h2>
+            <p>8 classicos brasileiros inclusos. Cada tapa, um aleatorio toca.</p>
+        </div>
+
+        <div class="sounds-grid reveal">
+            <div class="sound-card" data-sound="gemidao">
+                <span class="sound-icon">😩</span>
+                <div class="sound-name">Gemidao</div>
+                <div class="sound-desc">O classico eterno</div>
+                <span class="sound-free-tag">Gratis</span>
+            </div>
+            <div class="sound-card" data-sound="eita">
+                <span class="sound-icon">😲</span>
+                <div class="sound-name">Eita!</div>
+                <div class="sound-desc">Surpresa nordestina</div>
+                <span class="sound-free-tag">Gratis</span>
+            </div>
+            <div class="sound-card" data-sound="vish">
+                <span class="sound-icon">😬</span>
+                <div class="sound-name">Vish</div>
+                <div class="sound-desc">Deu ruim</div>
+                <span class="sound-free-tag">Gratis</span>
+            </div>
+            <div class="sound-card" data-sound="ai">
+                <span class="sound-icon">😫</span>
+                <div class="sound-name">Aiii</div>
+                <div class="sound-desc">Doi, mas e bom</div>
+                <span class="sound-free-tag">Gratis</span>
+            </div>
+            <div class="sound-card" data-sound="opa">
+                <span class="sound-icon">😏</span>
+                <div class="sound-name">Opa!</div>
+                <div class="sound-desc">Quase la</div>
+                <span class="sound-free-tag">Gratis</span>
+            </div>
+            <div class="sound-card" data-sound="uai">
+                <span class="sound-icon">🤔</span>
+                <div class="sound-name">Uai</div>
+                <div class="sound-desc">Mineirice pura</div>
+                <span class="sound-free-tag">Gratis</span>
+            </div>
+            <div class="sound-card" data-sound="oxe">
+                <span class="sound-icon">😤</span>
+                <div class="sound-name">Oxe!</div>
+                <div class="sound-desc">Indignacao baiana</div>
+                <span class="sound-free-tag">Gratis</span>
+            </div>
+            <div class="sound-card" data-sound="socorro">
+                <span class="sound-icon">😱</span>
+                <div class="sound-name">Socorro!</div>
+                <div class="sound-desc">Panico total</div>
+                <span class="sound-free-tag">Gratis</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- PREMIUM PACKS -->
+    <section id="packs">
+        <div class="section-header reveal">
+            <span class="section-tag">Em breve</span>
+            <h2>Packs Premium</h2>
+            <p>Mais sons, mais vergonha alheia. Pagamento via AbacatePay.</p>
+        </div>
+
+        <div class="packs-grid">
+            <div class="pack-card pack-futebol reveal">
+                <span class="pack-badge">Em breve</span>
+                <span class="pack-icon">⚽</span>
+                <h3>Futebol BR</h3>
+                <p>Os sons que fazem o brasileiro chorar e comemorar ao mesmo tempo.</p>
+                <ul class="pack-sounds-list">
+                    <li>E GOL!</li>
+                    <li>Que isso juiz</li>
+                    <li>VAR!</li>
+                    <li>Galvao fala</li>
+                    <li>Apito final</li>
+                    <li>+5 sons</li>
+                </ul>
+                <div class="pack-price">R$ 9,90 <small>/ unico</small></div>
+                <span class="btn-pack">🔔 Me avise</span>
+            </div>
+
+            <div class="pack-card pack-funk reveal">
+                <span class="pack-badge">Em breve</span>
+                <span class="pack-icon">🎤</span>
+                <h3>Funk & Meme</h3>
+                <p>A trilha sonora das ruas do Brasil direto no seu notebook.</p>
+                <ul class="pack-sounds-list">
+                    <li>Uh vai morrer</li>
+                    <li>Para para</li>
+                    <li>Que delicia</li>
+                    <li>Vai tomar</li>
+                    <li>Taca-le pau</li>
+                    <li>+5 sons</li>
+                </ul>
+                <div class="pack-price">R$ 9,90 <small>/ unico</small></div>
+                <span class="btn-pack">🔔 Me avise</span>
+            </div>
+
+            <div class="pack-card pack-meme reveal">
+                <span class="pack-badge">Em breve</span>
+                <span class="pack-icon">🤡</span>
+                <h3>Memes BR</h3>
+                <p>Os memes que marcaram geracoes. Pra quem vive na internet.</p>
+                <ul class="pack-sounds-list">
+                    <li>Cala boca Galvao</li>
+                    <li>Meu Deus do ceu</li>
+                    <li>Ai que delicia</li>
+                    <li>Nunca nem vi</li>
+                    <li>Tururu</li>
+                    <li>+5 sons</li>
+                </ul>
+                <div class="pack-price">R$ 9,90 <small>/ unico</small></div>
+                <span class="btn-pack">🔔 Me avise</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- TECH REQUIREMENTS -->
+    <section id="requisitos">
+        <div class="tech-section reveal">
+            <div class="section-header" style="margin-bottom: 0;">
+                <span class="section-tag">Requisitos</span>
+                <h2 style="font-size: 1.8rem;">O que voce precisa</h2>
+            </div>
+
+            <div class="tech-grid">
+                <div class="tech-item">
+                    <span class="tech-item-icon">🍎</span>
+                    <div class="tech-item-text">
+                        <strong>Apple Silicon</strong>
+                        <span>M1, M2, M3 ou M4</span>
+                    </div>
+                </div>
+                <div class="tech-item">
+                    <span class="tech-item-icon">💻</span>
+                    <div class="tech-item-text">
+                        <strong>macOS 13+</strong>
+                        <span>Ventura ou superior</span>
+                    </div>
+                </div>
+                <div class="tech-item">
+                    <span class="tech-item-icon">📦</span>
+                    <div class="tech-item-text">
+                        <strong>~2MB</strong>
+                        <span>Tamanho total do app</span>
+                    </div>
+                </div>
+                <div class="tech-item">
+                    <span class="tech-item-icon">🔋</span>
+                    <div class="tech-item-text">
+                        <strong>Impacto zero</strong>
+                        <span>Bateria e performance</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sudo-warning">
+                <span style="font-size: 1.3rem;">⚠️</span>
+                <div>
+                    Precisa rodar com <code>sudo</code> pra acessar o acelerometro.
+                    E seguro - <a href="https://github.com/zuckenbert/MacTapa" target="_blank" rel="noopener" style="color: var(--yellow);">confira o codigo fonte</a>.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <section class="final-cta">
+        <div class="reveal">
+            <h2>
+                Seu Mac ta<br>
+                <span style="color: var(--pink);">pedindo um tapa.</span>
+            </h2>
+            <p>Gratis, open source, 2MB. Nao tem desculpa.</p>
+            <a href="https://github.com/zuckenbert/MacTapa/releases" target="_blank" rel="noopener" class="btn btn-primary btn-big">
+                🖐️ Baixar MacTapa
+            </a>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-links">
+            <a href="https://github.com/zuckenbert/MacTapa" target="_blank" rel="noopener">GitHub</a>
+            <a href="https://github.com/zuckenbert/MacTapa/releases" target="_blank" rel="noopener">Releases</a>
+            <a href="https://github.com/zuckenbert/MacTapa/issues" target="_blank" rel="noopener">Reportar Bug</a>
+            <a href="https://github.com/zuckenbert/MacTapa#contributing" target="_blank" rel="noopener">Contribuir</a>
+        </div>
+        <p class="footer-love">
+            Feito com 🖐️ e muito amor &mdash; MacTapa &copy; 2025
+        </p>
+    </footer>
+
+    <script>
+        // ========== INTERSECTION OBSERVER (reveal on scroll) ==========
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    revealObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+        document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+        // ========== SLAP COUNTER ANIMATION ==========
+        function animateCounter(el, target, duration) {
+            const start = performance.now();
+            const initial = 0;
+
+            function update(now) {
+                const elapsed = now - start;
+                const progress = Math.min(elapsed / duration, 1);
+                // ease out cubic
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const current = Math.floor(initial + (target - initial) * eased);
+                el.textContent = current.toLocaleString('pt-BR');
+
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        // Generate a fun "daily slap count" based on the date
+        const today = new Date();
+        const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+        const dailySlaps = 12847 + (seed % 5000);
+
+        const counterObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateCounter(document.getElementById('counter-slaps'), dailySlaps, 2000);
+                    counterObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.3 });
+
+        counterObserver.observe(document.querySelector('.counter-bar'));
+
+        // ========== MACBOOK SLAP ANIMATION ==========
+        const macbook = document.getElementById('macbook');
+        const screenEmoji = document.getElementById('screen-emoji');
+        const screenText = document.getElementById('screen-text');
+
+        const soundReactions = [
+            { emoji: '😩', text: 'GEMIDAO.mp3' },
+            { emoji: '😲', text: 'EITA.mp3' },
+            { emoji: '😬', text: 'VISH.mp3' },
+            { emoji: '😫', text: 'AIII.mp3' },
+            { emoji: '😏', text: 'OPA.mp3' },
+            { emoji: '🤔', text: 'UAI.mp3' },
+            { emoji: '😤', text: 'OXE.mp3' },
+            { emoji: '😱', text: 'SOCORRO.mp3' },
+        ];
+
+        let slapIndex = 0;
+
+        function triggerSlap() {
+            macbook.classList.remove('slapped');
+            // Force reflow
+            void macbook.offsetWidth;
+            macbook.classList.add('slapped');
+
+            const reaction = soundReactions[slapIndex % soundReactions.length];
+            screenEmoji.textContent = reaction.emoji;
+            screenText.textContent = reaction.text;
+            slapIndex++;
+
+            setTimeout(() => {
+                macbook.classList.remove('slapped');
+            }, 500);
+        }
+
+        // Auto-slap every 2.5s synced with hand animation
+        setInterval(triggerSlap, 2500);
+
+        // Click to slap
+        macbook.addEventListener('click', triggerSlap);
+
+        // ========== SOUND CARD CLICK ==========
+        document.querySelectorAll('.sound-card').forEach(card => {
+            card.addEventListener('click', () => {
+                // Remove playing from others
+                document.querySelectorAll('.sound-card.playing').forEach(c => c.classList.remove('playing'));
+                card.classList.add('playing');
+
+                setTimeout(() => {
+                    card.classList.remove('playing');
+                }, 600);
+            });
+        });
+
+        // ========== SMOOTH SCROLL for nav links ==========
+        document.querySelectorAll('a[href^="#"]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                const target = document.querySelector(link.getAttribute('href'));
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // ========== PARALLAX on hero ==========
+        let ticking = false;
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(() => {
+                    const scroll = window.scrollY;
+                    const hero = document.querySelector('.hero');
+                    if (scroll < window.innerHeight) {
+                        hero.style.transform = `translateY(${scroll * 0.15}px)`;
+                        hero.style.opacity = 1 - (scroll / (window.innerHeight * 0.8));
+                    }
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        });
+
+        // ========== INCREMENT SLAP COUNTER LIVE ==========
+        // Add random slaps over time (fun effect)
+        setInterval(() => {
+            const el = document.getElementById('counter-slaps');
+            const current = parseInt(el.textContent.replace(/\./g, ''), 10);
+            if (!isNaN(current)) {
+                const increment = Math.floor(Math.random() * 3) + 1;
+                el.textContent = (current + increment).toLocaleString('pt-BR');
+            }
+        }, 3000);
+    </script>
+</body>
+</html>

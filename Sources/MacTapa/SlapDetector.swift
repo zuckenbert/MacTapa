@@ -13,7 +13,7 @@ final class SlapDetector: ObservableObject {
     @Published var detectionMode: String = "Starting..."
 
     private var lastSlapTime: Date = .distantPast
-    private let cooldown: TimeInterval = 0.75
+    private let cooldown: TimeInterval = 1.0
     private let onSlap: (Double) -> Void
 
     // Accelerometer
@@ -241,14 +241,9 @@ final class SlapDetector: ObservableObject {
         let ratioFast = ltaFast > 1e-10 ? staFast / ltaFast : 0
         let ratioMed = ltaMed > 1e-10 ? staMed / ltaMed : 0
 
-        // Debug: print periodically
-        if decimationCount % 1000 == 0 {
-            print(String(format: "[MacTapa] accel: mag=%.4f ratioF=%.1f ratioM=%.1f", magnitude, ratioFast, ratioMed))
-        }
-
         // Threshold based on sensitivity
-        let thresholdOn = 2.5 + (1.0 - sensitivity) * 1.5  // 2.5 to 4.0
-        let minAmplitude = 0.02 + sensitivity * 0.03
+        let thresholdOn = 3.0 + (1.0 - sensitivity) * 1.5  // 3.0 to 4.5
+        let minAmplitude = 0.05 + sensitivity * 0.03  // 0.05g to 0.08g
 
         if (ratioFast > thresholdOn || ratioMed > thresholdOn * 0.85) && magnitude > minAmplitude {
             let intensity = min(magnitude / 0.2, 1.0)
