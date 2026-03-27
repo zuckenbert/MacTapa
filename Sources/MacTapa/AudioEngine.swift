@@ -3,9 +3,23 @@ import AVFoundation
 import Foundation
 
 final class AudioEngine: ObservableObject {
-    @Published var currentPack: String = "GemidaoClassic"
+    @Published var currentPack: String = "GemidaoClassic" {
+        didSet {
+            if oldValue != currentPack {
+                loadSounds(pack: currentPack)
+                selectedSoundIndex = -1 // Reset to random when switching packs
+            }
+        }
+    }
     @Published var volume: Float = 0.8
     @Published var availablePacks: [String] = []
+
+    // -1 = random, 0+ = index into soundList
+    @Published var selectedSoundIndex: Int = -1
+
+    // Exposed for UI: list of sounds in current pack
+    @Published var soundNames: [String] = []
+    private var soundURLs: [URL] = []
 
     private var sounds: [String: [URL]] = [:]
     private var players: [AVAudioPlayer] = []
@@ -16,40 +30,35 @@ final class AudioEngine: ObservableObject {
     }
 
     func playSound(intensity: Double) {
-        guard let packSounds = sounds[currentPack], !packSounds.isEmpty else {
-            print("[MacTapa] No sounds loaded for pack: \(currentPack)")
-            // Play system sound as fallback
-            NSSound.beep()
-            return
+        let url: URL
+
+        if selectedSoundIndex >= 0 && selectedSoundIndex < soundURLs.count {
+            url = soundURLs[selectedSoundIndex]
+        } else {
+            guard !soundURLs.isEmpty else {
+                print("[MacTapa] No sounds loaded for pack: \(currentPack)")
+                NSSound.beep()
+                return
+            }
+            url = soundURLs.randomElement()!
         }
 
-        let url = packSounds.randomElement()!
         do {
             let player = try AVAudioPlayer(contentsOf: url)
-            // Volume scales with impact intensity (min 0.3, max 1.0)
             player.volume = volume * Float(0.3 + intensity * 0.7)
             player.prepareToPlay()
             player.play()
 
-            // Keep reference so it doesn't get deallocated mid-play
             players.append(player)
-
-            // Cleanup finished players
             players.removeAll { !$0.isPlaying }
         } catch {
             print("[MacTapa] Error playing sound: \(error)")
         }
     }
 
-    func switchPack(_ name: String) {
-        currentPack = name
-        loadSounds(pack: name)
-    }
-
     // MARK: - Sound Loading
 
     private func loadAvailablePacks() {
-        // Check bundled resources
         if let resourcePath = Bundle.main.resourcePath {
             let soundsPath = (resourcePath as NSString).appendingPathComponent("Sounds")
             if let contents = try? FileManager.default.contentsOfDirectory(atPath: soundsPath) {
@@ -58,11 +67,10 @@ final class AudioEngine: ObservableObject {
                     let fullPath = (soundsPath as NSString).appendingPathComponent(name)
                     FileManager.default.fileExists(atPath: fullPath, isDirectory: &isDir)
                     return isDir.boolValue
-                }
+                }.sorted()
             }
         }
 
-        // Also check user sounds directory
         let userSoundsDir = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".mactapa/sounds")
         if let contents = try? FileManager.default.contentsOfDirectory(atPath: userSoundsDir.path) {
@@ -76,14 +84,13 @@ final class AudioEngine: ObservableObject {
         }
 
         if availablePacks.isEmpty {
-            print("[MacTapa] No sound packs found. Add .mp3 files to Resources/Sounds/<PackName>/")
+            print("[MacTapa] No sound packs found.")
         }
     }
 
     private func loadSounds(pack: String) {
         var urls: [URL] = []
 
-        // Try bundled resources first
         if let resourcePath = Bundle.main.resourcePath {
             let packPath = (resourcePath as NSString)
                 .appendingPathComponent("Sounds")
@@ -91,12 +98,21 @@ final class AudioEngine: ObservableObject {
             urls.append(contentsOf: audioFiles(in: packPath))
         }
 
-        // Then user directory
         let userPackPath = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".mactapa/sounds/\(pack)")
         urls.append(contentsOf: audioFiles(in: userPackPath.path))
 
+        urls.sort { $0.lastPathComponent < $1.lastPathComponent }
         sounds[pack] = urls
+        soundURLs = urls
+
+        // Build readable names for UI
+        soundNames = urls.map { url in
+            url.deletingPathExtension().lastPathComponent
+                .replacingOccurrences(of: "_", with: " ")
+                .capitalized
+        }
+
         print("[MacTapa] Loaded \(urls.count) sounds for pack '\(pack)'")
     }
 

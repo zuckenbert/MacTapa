@@ -5,7 +5,7 @@ struct MenuBarView: View {
     @ObservedObject var slapDetector: SlapDetector
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 14) {
             // Header
             HStack {
                 Text("MacTapa")
@@ -28,7 +28,7 @@ struct MenuBarView: View {
             }
             .toggleStyle(.switch)
 
-            // Detection mode indicator
+            // Detection mode
             HStack {
                 Image(systemName: "waveform")
                 Text("Modo: \(slapDetector.detectionMode)")
@@ -36,10 +36,10 @@ struct MenuBarView: View {
             }
             .foregroundColor(.secondary)
 
-            // Sound Pack Selector
+            // Pack Selector
             if !audioEngine.availablePacks.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Sound Pack")
+                    Text("Pack")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Picker("Pack", selection: $audioEngine.currentPack) {
@@ -51,7 +51,23 @@ struct MenuBarView: View {
                 }
             }
 
-            // Sensitivity Slider
+            // Sound Selector (within pack)
+            if !audioEngine.soundNames.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Som")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Picker("Som", selection: $audioEngine.selectedSoundIndex) {
+                        Text("Aleatorio").tag(-1)
+                        ForEach(0..<audioEngine.soundNames.count, id: \.self) { i in
+                            Text(audioEngine.soundNames[i]).tag(i)
+                        }
+                    }
+                    .labelsHidden()
+                }
+            }
+
+            // Sensitivity
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text("Sensibilidade")
@@ -65,7 +81,7 @@ struct MenuBarView: View {
                 Slider(value: $slapDetector.sensitivity, in: 0.0...1.0, step: 0.05)
             }
 
-            // Volume Slider
+            // Volume
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text("Volume")
