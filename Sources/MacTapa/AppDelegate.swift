@@ -33,14 +33,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 280, height: 480)
         popover.behavior = .transient
-        popover.contentViewController = NSHostingController(
+
+        let hostingController = NSHostingController(
             rootView: MenuBarView(
                 audioEngine: audioEngine,
                 slapDetector: slapDetector
             )
         )
+        // Let SwiftUI calculate the ideal size
+        hostingController.view.setFrameSize(hostingController.sizeThatFits(in: NSSize(width: 280, height: 600)))
+        popover.contentViewController = hostingController
     }
 
     @objc private func togglePopover() {
