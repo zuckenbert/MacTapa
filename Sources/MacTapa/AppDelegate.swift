@@ -1,7 +1,6 @@
 import AppKit
 import SwiftUI
 
-@main
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var slapDetector: SlapDetector!
@@ -14,11 +13,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         audioEngine = AudioEngine()
         slapDetector = SlapDetector { [weak self] intensity in
-            self?.audioEngine.playSound(intensity: intensity)
+            DispatchQueue.main.async {
+                self?.audioEngine.playSound(intensity: intensity)
+            }
         }
 
         setupMenuBar()
         slapDetector.start()
+        print("[MacTapa] App running. Look for the hand icon in the menu bar.")
     }
 
     private func setupMenuBar() {
@@ -27,6 +29,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "hand.raised.fill", accessibilityDescription: "MacTapa")
             button.action = #selector(togglePopover)
+            button.target = self
         }
 
         popover = NSPopover()
@@ -50,3 +53,4 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 }
+

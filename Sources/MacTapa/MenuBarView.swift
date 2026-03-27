@@ -28,6 +28,14 @@ struct MenuBarView: View {
             }
             .toggleStyle(.switch)
 
+            // Detection mode indicator
+            HStack {
+                Image(systemName: "waveform")
+                Text("Modo: \(slapDetector.detectionMode)")
+                    .font(.caption)
+            }
+            .foregroundColor(.secondary)
+
             // Sound Pack Selector
             if !audioEngine.availablePacks.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
@@ -50,11 +58,11 @@ struct MenuBarView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Spacer()
-                    Text(String(format: "%.1fg", slapDetector.sensitivity))
+                    Text(String(format: "%.0f%%", (1.0 - slapDetector.sensitivity) * 100))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                Slider(value: $slapDetector.sensitivity, in: 0.5...4.0, step: 0.1)
+                Slider(value: $slapDetector.sensitivity, in: 0.0...1.0, step: 0.05)
             }
 
             // Volume Slider
