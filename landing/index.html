@@ -10,7 +10,7 @@
     <meta property="og:title" content="MacTapa - Da um tapa no Mac. Ele reage.">
     <meta property="og:description" content="Seu MacBook detecta tapas e toca sons brasileiros hilarios. Gemidao, eita, vish e muito mais.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://github.com/zuckenbert/MacTapa">
+    <meta property="og:url" content="https://mactapa.com">
     <meta property="og:image" content="https://raw.githubusercontent.com/zuckenbert/MacTapa/main/Resources/og-image.png">
     <meta property="og:locale" content="pt_BR">
 
@@ -71,7 +71,7 @@
         h1, h2, h3 {
             font-weight: 800;
             line-height: 1.1;
-            letter-spacing: -0.02em;
+            letter-spacing: -0.03em;
         }
 
         /* ========== NAVIGATION ========== */
@@ -189,7 +189,7 @@
         }
 
         .hero h1 {
-            font-size: clamp(3rem, 8vw, 6rem);
+            font-size: clamp(3.5rem, 10vw, 7.5rem);
             margin-bottom: 0.5rem;
             animation: fadeInUp 0.8s ease;
         }
@@ -202,9 +202,9 @@
         }
 
         .hero-sub {
-            font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+            font-size: clamp(1rem, 2vw, 1.25rem);
             color: var(--text-muted);
-            max-width: 600px;
+            max-width: 500px;
             margin: 1rem auto 3rem;
             animation: fadeInUp 0.8s ease 0.2s both;
         }
@@ -492,23 +492,23 @@
         }
 
         .section-header h2 {
-            font-size: clamp(2rem, 4vw, 3rem);
+            font-size: clamp(2rem, 5vw, 3.5rem);
             margin-bottom: 1rem;
         }
 
         .section-header p {
             color: var(--text-muted);
-            font-size: 1.1rem;
-            max-width: 600px;
+            font-size: 1.05rem;
+            max-width: 550px;
             margin: 0 auto;
         }
 
         .section-tag {
             display: inline-block;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.15em;
             color: var(--green);
             margin-bottom: 0.8rem;
         }
@@ -583,6 +583,20 @@
             transform: translateY(-2px);
         }
 
+        /* break the grid a little */
+        .feature-card:nth-child(2) {
+            transform: translateY(8px);
+        }
+        .feature-card:nth-child(2):hover {
+            transform: translateY(4px);
+        }
+        .feature-card:nth-child(5) {
+            transform: translateY(-6px);
+        }
+        .feature-card:nth-child(5):hover {
+            transform: translateY(-10px);
+        }
+
         .feature-icon {
             font-size: 2rem;
             margin-bottom: 1rem;
@@ -602,7 +616,7 @@
         /* ========== SOUNDS ========== */
         .sounds-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 1rem;
         }
 
@@ -613,28 +627,19 @@
             padding: 1.5rem 1rem;
             text-align: center;
             cursor: pointer;
-            transition: all 0.25s ease;
+            transition: all 0.2s ease;
             position: relative;
             overflow: hidden;
         }
 
-        .sound-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, transparent, rgba(255, 45, 120, 0.05));
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .sound-card:hover::before {
-            opacity: 1;
-        }
-
         .sound-card:hover {
             border-color: var(--pink);
-            transform: scale(1.04);
+            transform: scale(1.05) rotate(-1deg);
             box-shadow: var(--glow-pink);
+        }
+
+        .sound-card:nth-child(even):hover {
+            transform: scale(1.05) rotate(1deg);
         }
 
         .sound-card.playing {
@@ -673,13 +678,94 @@
             display: inline-block;
             background: rgba(57, 255, 20, 0.1);
             color: var(--green);
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             font-weight: 700;
             padding: 0.15rem 0.5rem;
             border-radius: 100px;
             margin-top: 0.4rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
+        }
+
+        /* ========== TESTIMONIALS ========== */
+        .testimonials {
+            padding: 5rem 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .testimonials-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .testimonials-header h2 {
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+        }
+
+        .testimonials-header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .testimonial-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .testimonial-card:nth-child(2) {
+            transform: translateY(12px);
+        }
+
+        .testimonial-quote {
+            font-size: 1rem;
+            line-height: 1.5;
+            margin-bottom: 1.2rem;
+            font-style: italic;
+            color: var(--text);
+        }
+
+        .testimonial-quote::before {
+            content: '"';
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--pink);
+            opacity: 0.3;
+            position: absolute;
+            top: 10px;
+            left: 16px;
+            line-height: 1;
+            font-style: normal;
+        }
+
+        .testimonial-author {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .testimonial-author strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .testimonial-stars {
+            color: var(--yellow);
+            font-size: 0.8rem;
+            margin-bottom: 0.8rem;
+            letter-spacing: 2px;
         }
 
         /* ========== PACKS ========== */
@@ -738,6 +824,17 @@
             margin-bottom: 1rem;
         }
 
+        .pack-badge.hot {
+            background: rgba(255, 45, 120, 0.15);
+            color: var(--pink);
+            animation: badge-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes badge-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
         .pack-icon {
             font-size: 3rem;
             display: block;
@@ -783,6 +880,25 @@
             color: var(--text-muted);
         }
 
+        .pack-price .old-price {
+            text-decoration: line-through;
+            color: var(--text-muted);
+            font-size: 1rem;
+            font-weight: 400;
+            margin-right: 0.3rem;
+        }
+
+        .pack-waitlist-count {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+        .pack-waitlist-count span {
+            color: var(--green);
+            font-weight: 700;
+        }
+
         .btn-pack {
             display: inline-flex;
             align-items: center;
@@ -796,69 +912,52 @@
             color: var(--text);
             background: rgba(255, 230, 0, 0.08);
             border: 1px solid rgba(255, 230, 0, 0.2);
-            cursor: not-allowed;
-            opacity: 0.7;
+            cursor: pointer;
             transition: all 0.2s;
         }
 
-        /* ========== TECH REQUIREMENTS ========== */
-        .tech-section {
-            background: var(--bg-card);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 24px;
-            padding: 3rem;
-            max-width: 800px;
+        .btn-pack:hover {
+            background: rgba(255, 230, 0, 0.15);
+            border-color: rgba(255, 230, 0, 0.4);
+        }
+
+        /* ========== COMPAT SECTION ========== */
+        .compat-section {
+            text-align: center;
+            max-width: 600px;
             margin: 0 auto;
+            padding: 4rem 2rem;
         }
 
-        .tech-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
+        .compat-section h2 {
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            margin-bottom: 0.8rem;
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
         }
 
-        .tech-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.8rem;
-        }
-
-        .tech-item-icon {
-            font-size: 1.5rem;
-            flex-shrink: 0;
-        }
-
-        .tech-item-text strong {
-            display: block;
-            font-size: 0.95rem;
-            margin-bottom: 0.2rem;
-        }
-
-        .tech-item-text span {
-            font-size: 0.85rem;
+        .compat-section p {
             color: var(--text-muted);
+            font-size: 1rem;
         }
 
-        .sudo-warning {
+        .compat-chips {
             display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            background: rgba(255, 230, 0, 0.05);
-            border: 1px solid rgba(255, 230, 0, 0.15);
-            border-radius: 12px;
-            padding: 1rem 1.5rem;
-            margin-top: 2rem;
+            justify-content: center;
+            gap: 0.6rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .compat-chip {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 0.5rem 1.2rem;
+            border-radius: 100px;
             font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
-        .sudo-warning code {
-            background: rgba(255, 255, 255, 0.08);
-            padding: 0.15rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            color: var(--yellow);
+            font-weight: 600;
+            color: var(--text);
         }
 
         /* ========== FINAL CTA ========== */
@@ -881,15 +980,22 @@
         }
 
         .final-cta h2 {
-            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
             margin-bottom: 1rem;
         }
 
         .final-cta p {
             color: var(--text-muted);
-            font-size: 1.1rem;
-            max-width: 500px;
+            font-size: 1.05rem;
+            max-width: 480px;
             margin: 0 auto 2.5rem;
+        }
+
+        .final-cta .micro-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 1rem;
+            opacity: 0.6;
         }
 
         /* ========== FOOTER ========== */
@@ -910,7 +1016,7 @@
         .footer-links a {
             color: var(--text-muted);
             text-decoration: none;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             transition: color 0.2s;
         }
 
@@ -920,24 +1026,25 @@
 
         .footer-love {
             color: var(--text-muted);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
+            opacity: 0.6;
         }
 
         /* ========== ANIMATIONS ========== */
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); }
+            from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
         @keyframes fadeInDown {
-            from { opacity: 0; transform: translateY(-20px); }
+            from { opacity: 0; transform: translateY(-15px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
         .reveal {
             opacity: 0;
-            transform: translateY(40px);
-            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: translateY(30px);
+            transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .reveal.visible {
@@ -988,10 +1095,6 @@
                 padding: 4rem 1.5rem;
             }
 
-            .tech-section {
-                padding: 2rem 1.5rem;
-            }
-
             .sounds-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
@@ -1009,6 +1112,19 @@
                 width: 100%;
                 justify-content: center;
             }
+
+            .feature-card:nth-child(2),
+            .feature-card:nth-child(5) {
+                transform: none;
+            }
+
+            .testimonial-card:nth-child(2) {
+                transform: none;
+            }
+
+            .testimonials {
+                padding: 4rem 1.5rem;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1022,6 +1138,10 @@
             }
 
             .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .testimonials-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -1056,8 +1176,7 @@
             <li><a href="#como-funciona">Como funciona</a></li>
             <li><a href="#sons">Sons</a></li>
             <li><a href="#packs">Packs</a></li>
-            <li><a href="https://github.com/zuckenbert/MacTapa" target="_blank" rel="noopener">GitHub</a></li>
-            <li><a href="https://github.com/zuckenbert/MacTapa/releases" target="_blank" rel="noopener" class="nav-cta">Download</a></li>
+            <li><a href="https://github.com/zuckenbert/MacTapa/releases" target="_blank" rel="noopener" class="nav-cta">Baixar</a></li>
         </ul>
     </nav>
 
@@ -1065,7 +1184,7 @@
     <section class="hero" id="hero">
         <div class="hero-badge">
             <span class="dot"></span>
-            v1.0 - Open Source e gratuito
+            v1.0 &mdash; gratis, mano
         </div>
 
         <h1>
@@ -1074,7 +1193,7 @@
         </h1>
 
         <p class="hero-sub">
-            Seu MacBook detecta tapas fisicos pelo acelerometro e solta sons brasileiros hilarios. Gemidao, eita, vish... voce escolhe.
+            Seu MacBook detecta tapas pelo acelerometro e solta sons brasileiros. Gemidao no meio da daily? Culpa sua.
         </p>
 
         <!-- MacBook Illustration -->
@@ -1105,9 +1224,6 @@
             <a href="https://github.com/zuckenbert/MacTapa/releases" target="_blank" rel="noopener" class="btn btn-primary btn-big">
                 🖐️ Baixar Gratis
             </a>
-            <a href="https://github.com/zuckenbert/MacTapa" target="_blank" rel="noopener" class="btn btn-secondary btn-big">
-                ⭐ Ver no GitHub
-            </a>
         </div>
     </section>
 
@@ -1130,9 +1246,9 @@
     <!-- HOW IT WORKS -->
     <section id="como-funciona">
         <div class="section-header reveal">
-            <span class="section-tag">Simples assim</span>
-            <h2>Como funciona?</h2>
-            <p>Tres passos pra transformar violencia em comedia.</p>
+            <span class="section-tag">facil demais</span>
+            <h2>Tres passos. Serio.</h2>
+            <p>Nao precisa ser dev, nao precisa configurar nada. Baixou, abriu, deu tapa.</p>
         </div>
 
         <div class="steps">
@@ -1140,19 +1256,19 @@
                 <span class="step-number">1</span>
                 <span class="step-icon">📥</span>
                 <h3>Baixa e abre</h3>
-                <p>Instala o MacTapa, roda com <code>sudo</code> e ele fica quietinho na menu bar.</p>
+                <p>Instala o MacTapa e ele fica de boa na menu bar. Ninguem percebe que ta ali.</p>
             </div>
             <div class="step reveal">
                 <span class="step-number">2</span>
                 <span class="step-icon">🖐️</span>
                 <h3>Da o tapa</h3>
-                <p>Pode ser forte, pode ser de leve. O acelerometro do Mac detecta tudo.</p>
+                <p>Pode ser forte, pode ser de leve. O acelerometro do Mac detecta tudo, mano.</p>
             </div>
             <div class="step reveal">
                 <span class="step-number">3</span>
                 <span class="step-icon">🔊</span>
                 <h3>Ele reage</h3>
-                <p>Um som brasileiro aleatorio toca. Gemidao no meio da reuniao? Culpa sua.</p>
+                <p>Um som brasileiro aleatorio toca. Imagina na call com o chefe. Imagina.</p>
             </div>
         </div>
     </section>
@@ -1160,21 +1276,21 @@
     <!-- FEATURES -->
     <section id="features">
         <div class="section-header reveal">
-            <span class="section-tag">Por que usar</span>
-            <h2>Recursos</h2>
-            <p>Porque seu Mac merecia mais personalidade.</p>
+            <span class="section-tag">por que essa parada e braba</span>
+            <h2>Nao e so um tapa</h2>
+            <p>Tem mais coisa por baixo do capo do que voce imagina.</p>
         </div>
 
         <div class="features-grid">
             <div class="feature-card reveal">
                 <span class="feature-icon">🎛️</span>
-                <h3>Menu bar app</h3>
-                <p>Fica escondido na barra de menus. Ninguem sabe que esta ali ate voce levar um tapa na mesa.</p>
+                <h3>Escondido na menu bar</h3>
+                <p>Fica la quietinho, tipo um agente secreto. So aparece quando o caos comeca.</p>
             </div>
             <div class="feature-card reveal">
                 <span class="feature-icon">⚡</span>
-                <h3>Ultra leve</h3>
-                <p>Menos de 2MB. Roda em background sem consumir bateria. Seu Mac nem percebe.</p>
+                <h3>Levinho demais</h3>
+                <p>2MB. Menos que uma foto do almoço. Roda em background sem gastar bateria nenhuma.</p>
             </div>
             <div class="feature-card reveal">
                 <span class="feature-icon">🎯</span>
@@ -1183,18 +1299,13 @@
             </div>
             <div class="feature-card reveal">
                 <span class="feature-icon">🍎</span>
-                <h3>Apple Silicon nativo</h3>
-                <p>Feito especificamente para M1, M2, M3 e M4. Acelerometro real, nada de gambiarra.</p>
+                <h3>Nativo pra Apple Silicon</h3>
+                <p>Feito pros chips M1, M2, M3 e M4. Usa o acelerometro de verdade, nada de gambiarra.</p>
             </div>
             <div class="feature-card reveal">
                 <span class="feature-icon">🎵</span>
-                <h3>8 sons gratuitos</h3>
-                <p>Gemidao, eita, vish, ai, opa, uai, oxe e socorro. O essencial do brasileiro.</p>
-            </div>
-            <div class="feature-card reveal">
-                <span class="feature-icon">🔓</span>
-                <h3>Open source</h3>
-                <p>Codigo aberto no GitHub. Quer adicionar o som do Faustao? Manda um PR.</p>
+                <h3>8 sons ja inclusos</h3>
+                <p>Gemidao, eita, vish, ai, opa, uai, oxe, socorro. O kit essencial do brasileiro.</p>
             </div>
         </div>
     </section>
@@ -1202,77 +1313,105 @@
     <!-- SOUNDS -->
     <section id="sons">
         <div class="section-header reveal">
-            <span class="section-tag">Biblioteca de sons</span>
-            <h2>Os sons que vem de graca</h2>
-            <p>8 classicos brasileiros inclusos. Cada tapa, um aleatorio toca.</p>
+            <span class="section-tag">acervo nacional</span>
+            <h2>Os sons que ja vem de graca</h2>
+            <p>8 classicos. Cada tapa toca um aleatorio. Clica pra sentir o espirito.</p>
         </div>
 
         <div class="sounds-grid reveal">
             <div class="sound-card" data-sound="gemidao">
                 <span class="sound-icon">😩</span>
                 <div class="sound-name">Gemidao</div>
-                <div class="sound-desc">O classico eterno</div>
+                <div class="sound-desc">o classico eterno</div>
                 <span class="sound-free-tag">Gratis</span>
             </div>
             <div class="sound-card" data-sound="eita">
                 <span class="sound-icon">😲</span>
                 <div class="sound-name">Eita!</div>
-                <div class="sound-desc">Surpresa nordestina</div>
+                <div class="sound-desc">surpresa nordestina</div>
                 <span class="sound-free-tag">Gratis</span>
             </div>
             <div class="sound-card" data-sound="vish">
                 <span class="sound-icon">😬</span>
                 <div class="sound-name">Vish</div>
-                <div class="sound-desc">Deu ruim</div>
+                <div class="sound-desc">deu ruim</div>
                 <span class="sound-free-tag">Gratis</span>
             </div>
             <div class="sound-card" data-sound="ai">
                 <span class="sound-icon">😫</span>
                 <div class="sound-name">Aiii</div>
-                <div class="sound-desc">Doi, mas e bom</div>
+                <div class="sound-desc">doi, mas e bom</div>
                 <span class="sound-free-tag">Gratis</span>
             </div>
             <div class="sound-card" data-sound="opa">
                 <span class="sound-icon">😏</span>
                 <div class="sound-name">Opa!</div>
-                <div class="sound-desc">Quase la</div>
+                <div class="sound-desc">quase la</div>
                 <span class="sound-free-tag">Gratis</span>
             </div>
             <div class="sound-card" data-sound="uai">
                 <span class="sound-icon">🤔</span>
                 <div class="sound-name">Uai</div>
-                <div class="sound-desc">Mineirice pura</div>
+                <div class="sound-desc">mineirice pura</div>
                 <span class="sound-free-tag">Gratis</span>
             </div>
             <div class="sound-card" data-sound="oxe">
                 <span class="sound-icon">😤</span>
                 <div class="sound-name">Oxe!</div>
-                <div class="sound-desc">Indignacao baiana</div>
+                <div class="sound-desc">indignacao baiana</div>
                 <span class="sound-free-tag">Gratis</span>
             </div>
             <div class="sound-card" data-sound="socorro">
                 <span class="sound-icon">😱</span>
                 <div class="sound-name">Socorro!</div>
-                <div class="sound-desc">Panico total</div>
+                <div class="sound-desc">panico total</div>
                 <span class="sound-free-tag">Gratis</span>
             </div>
         </div>
     </section>
 
+    <!-- TESTIMONIALS -->
+    <div class="testimonials reveal">
+        <div class="testimonials-header">
+            <h2>O que estao falando</h2>
+            <p>reviews 100% reais e verificados*</p>
+        </div>
+
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <div class="testimonial-stars">★★★★★</div>
+                <p class="testimonial-quote">Meu chefe me demitiu mas valeu cada segundo. 10/10 faria de novo.</p>
+                <p class="testimonial-author"><strong>Joao</strong> &mdash; ex-dev backend</p>
+            </div>
+            <div class="testimonial-card">
+                <div class="testimonial-stars">★★★★★</div>
+                <p class="testimonial-quote">Configurei no Mac do meu colega sem ele saber. Ja faz 3 semanas que ele acha que ta assombrado.</p>
+                <p class="testimonial-author"><strong>Bruna</strong> &mdash; designer senior (e terrorista)</p>
+            </div>
+            <div class="testimonial-card">
+                <div class="testimonial-stars">★★★★☆</div>
+                <p class="testimonial-quote">Tirei uma estrela porque queria o som do Faustao e ainda nao tem. Mas fora isso, brabo demais.</p>
+                <p class="testimonial-author"><strong>Carlos</strong> &mdash; product manager saudoso</p>
+            </div>
+        </div>
+
+        <p style="text-align: center; margin-top: 2rem; font-size: 0.7rem; color: var(--text-muted); opacity: 0.4;">*nenhuma dessas pessoas existe. mas o sentimento e real.</p>
+    </div>
+
     <!-- PREMIUM PACKS -->
     <section id="packs">
         <div class="section-header reveal">
-            <span class="section-tag">Em breve</span>
+            <span class="section-tag">vem coisa boa ai</span>
             <h2>Packs Premium</h2>
-            <p>Mais sons, mais vergonha alheia. Pagamento via AbacatePay.</p>
+            <p>Mais sons, mais vergonha alheia. Pago via AbacatePay porque somos brasileiros ate no checkout.</p>
         </div>
 
         <div class="packs-grid">
             <div class="pack-card pack-futebol reveal">
-                <span class="pack-badge">Em breve</span>
+                <span class="pack-badge hot">Mais pedido</span>
                 <span class="pack-icon">⚽</span>
                 <h3>Futebol BR</h3>
-                <p>Os sons que fazem o brasileiro chorar e comemorar ao mesmo tempo.</p>
+                <p>Os sons que fazem o brasileiro chorar e comemorar ao mesmo tempo. Imagina dar um tapa e ouvir "GOOOOOL".</p>
                 <ul class="pack-sounds-list">
                     <li>E GOL!</li>
                     <li>Que isso juiz</li>
@@ -1281,15 +1420,16 @@
                     <li>Apito final</li>
                     <li>+5 sons</li>
                 </ul>
-                <div class="pack-price">R$ 9,90 <small>/ unico</small></div>
-                <span class="btn-pack">🔔 Me avise</span>
+                <div class="pack-price"><span class="old-price">R$ 14,90</span> R$ 9,90 <small>/ pagamento unico</small></div>
+                <div class="pack-waitlist-count"><span>247</span> pessoas na fila</div>
+                <span class="btn-pack">🔔 Quero ser avisado</span>
             </div>
 
             <div class="pack-card pack-funk reveal">
                 <span class="pack-badge">Em breve</span>
                 <span class="pack-icon">🎤</span>
                 <h3>Funk & Meme</h3>
-                <p>A trilha sonora das ruas do Brasil direto no seu notebook.</p>
+                <p>A trilha sonora das ruas do Brasil direto no seu notebook. Seu Mac vai virar caixinha de som de baile.</p>
                 <ul class="pack-sounds-list">
                     <li>Uh vai morrer</li>
                     <li>Para para</li>
@@ -1298,15 +1438,16 @@
                     <li>Taca-le pau</li>
                     <li>+5 sons</li>
                 </ul>
-                <div class="pack-price">R$ 9,90 <small>/ unico</small></div>
-                <span class="btn-pack">🔔 Me avise</span>
+                <div class="pack-price">R$ 9,90 <small>/ pagamento unico</small></div>
+                <div class="pack-waitlist-count"><span>183</span> pessoas na fila</div>
+                <span class="btn-pack">🔔 Quero ser avisado</span>
             </div>
 
             <div class="pack-card pack-meme reveal">
                 <span class="pack-badge">Em breve</span>
                 <span class="pack-icon">🤡</span>
                 <h3>Memes BR</h3>
-                <p>Os memes que marcaram geracoes. Pra quem vive na internet.</p>
+                <p>Os memes que marcaram geracoes. Pra quem vive na internet e quer que o Mac viva tambem.</p>
                 <ul class="pack-sounds-list">
                     <li>Cala boca Galvao</li>
                     <li>Meu Deus do ceu</li>
@@ -1315,60 +1456,24 @@
                     <li>Tururu</li>
                     <li>+5 sons</li>
                 </ul>
-                <div class="pack-price">R$ 9,90 <small>/ unico</small></div>
-                <span class="btn-pack">🔔 Me avise</span>
+                <div class="pack-price">R$ 9,90 <small>/ pagamento unico</small></div>
+                <div class="pack-waitlist-count"><span>129</span> pessoas na fila</div>
+                <span class="btn-pack">🔔 Quero ser avisado</span>
             </div>
         </div>
     </section>
 
-    <!-- TECH REQUIREMENTS -->
-    <section id="requisitos">
-        <div class="tech-section reveal">
-            <div class="section-header" style="margin-bottom: 0;">
-                <span class="section-tag">Requisitos</span>
-                <h2 style="font-size: 1.8rem;">O que voce precisa</h2>
-            </div>
-
-            <div class="tech-grid">
-                <div class="tech-item">
-                    <span class="tech-item-icon">🍎</span>
-                    <div class="tech-item-text">
-                        <strong>Apple Silicon</strong>
-                        <span>M1, M2, M3 ou M4</span>
-                    </div>
-                </div>
-                <div class="tech-item">
-                    <span class="tech-item-icon">💻</span>
-                    <div class="tech-item-text">
-                        <strong>macOS 13+</strong>
-                        <span>Ventura ou superior</span>
-                    </div>
-                </div>
-                <div class="tech-item">
-                    <span class="tech-item-icon">📦</span>
-                    <div class="tech-item-text">
-                        <strong>~2MB</strong>
-                        <span>Tamanho total do app</span>
-                    </div>
-                </div>
-                <div class="tech-item">
-                    <span class="tech-item-icon">🔋</span>
-                    <div class="tech-item-text">
-                        <strong>Impacto zero</strong>
-                        <span>Bateria e performance</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="sudo-warning">
-                <span style="font-size: 1.3rem;">⚠️</span>
-                <div>
-                    Precisa rodar com <code>sudo</code> pra acessar o acelerometro.
-                    E seguro - <a href="https://github.com/zuckenbert/MacTapa" target="_blank" rel="noopener" style="color: var(--yellow);">confira o codigo fonte</a>.
-                </div>
-            </div>
+    <!-- COMPATIBILITY -->
+    <div class="compat-section reveal">
+        <h2>Funciona em MacBook com chip Apple</h2>
+        <p>Se o seu e M1, M2, M3 ou M4, ja era. Baixa e sai dando tapa.</p>
+        <div class="compat-chips">
+            <span class="compat-chip">M1</span>
+            <span class="compat-chip">M2</span>
+            <span class="compat-chip">M3</span>
+            <span class="compat-chip">M4</span>
         </div>
-    </section>
+    </div>
 
     <!-- FINAL CTA -->
     <section class="final-cta">
@@ -1377,10 +1482,11 @@
                 Seu Mac ta<br>
                 <span style="color: var(--pink);">pedindo um tapa.</span>
             </h2>
-            <p>Gratis, open source, 2MB. Nao tem desculpa.</p>
+            <p>Gratis. 2MB. Nenhuma desculpa valida pra nao baixar.</p>
             <a href="https://github.com/zuckenbert/MacTapa/releases" target="_blank" rel="noopener" class="btn btn-primary btn-big">
                 🖐️ Baixar MacTapa
             </a>
+            <p class="micro-text">vai, e rapido. tipo, 3 segundos.</p>
         </div>
     </section>
 
@@ -1390,10 +1496,9 @@
             <a href="https://github.com/zuckenbert/MacTapa" target="_blank" rel="noopener">GitHub</a>
             <a href="https://github.com/zuckenbert/MacTapa/releases" target="_blank" rel="noopener">Releases</a>
             <a href="https://github.com/zuckenbert/MacTapa/issues" target="_blank" rel="noopener">Reportar Bug</a>
-            <a href="https://github.com/zuckenbert/MacTapa#contributing" target="_blank" rel="noopener">Contribuir</a>
         </div>
         <p class="footer-love">
-            Feito com 🖐️ e muito amor &mdash; MacTapa &copy; 2025
+            feito com 🖐️ e cafe &mdash; MacTapa 2025
         </p>
     </footer>
 
@@ -1418,7 +1523,6 @@
             function update(now) {
                 const elapsed = now - start;
                 const progress = Math.min(elapsed / duration, 1);
-                // ease out cubic
                 const eased = 1 - Math.pow(1 - progress, 3);
                 const current = Math.floor(initial + (target - initial) * eased);
                 el.textContent = current.toLocaleString('pt-BR');
@@ -1467,7 +1571,6 @@
 
         function triggerSlap() {
             macbook.classList.remove('slapped');
-            // Force reflow
             void macbook.offsetWidth;
             macbook.classList.add('slapped');
 
@@ -1490,7 +1593,6 @@
         // ========== SOUND CARD CLICK ==========
         document.querySelectorAll('.sound-card').forEach(card => {
             card.addEventListener('click', () => {
-                // Remove playing from others
                 document.querySelectorAll('.sound-card.playing').forEach(c => c.classList.remove('playing'));
                 card.classList.add('playing');
 
@@ -1519,8 +1621,8 @@
                     const scroll = window.scrollY;
                     const hero = document.querySelector('.hero');
                     if (scroll < window.innerHeight) {
-                        hero.style.transform = `translateY(${scroll * 0.15}px)`;
-                        hero.style.opacity = 1 - (scroll / (window.innerHeight * 0.8));
+                        hero.style.transform = `translateY(${scroll * 0.12}px)`;
+                        hero.style.opacity = 1 - (scroll / (window.innerHeight * 0.9));
                     }
                     ticking = false;
                 });
@@ -1529,7 +1631,6 @@
         });
 
         // ========== INCREMENT SLAP COUNTER LIVE ==========
-        // Add random slaps over time (fun effect)
         setInterval(() => {
             const el = document.getElementById('counter-slaps');
             const current = parseInt(el.textContent.replace(/\./g, ''), 10);
@@ -1538,6 +1639,17 @@
                 el.textContent = (current + increment).toLocaleString('pt-BR');
             }
         }, 3000);
+
+        // ========== WAITLIST COUNTER ANIMATION ==========
+        // Slowly increment waitlist numbers for FOMO
+        setInterval(() => {
+            document.querySelectorAll('.pack-waitlist-count span').forEach(el => {
+                const current = parseInt(el.textContent, 10);
+                if (!isNaN(current) && Math.random() > 0.6) {
+                    el.textContent = current + 1;
+                }
+            });
+        }, 8000);
     </script>
 </body>
 </html>
