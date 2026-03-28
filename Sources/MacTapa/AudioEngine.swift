@@ -2,6 +2,11 @@ import AppKit
 import AVFoundation
 import Foundation
 
+enum DoorSoundType {
+    case open
+    case close
+}
+
 final class AudioEngine: ObservableObject {
     @Published var currentPack: String = "GemidaoClassic" {
         didSet {
@@ -23,6 +28,57 @@ final class AudioEngine: ObservableObject {
 
     private var sounds: [String: [URL]] = [:]
     private var players: [AVAudioPlayer] = []
+
+    // MARK: - Door Sounds
+
+    func playDoorSound(type: DoorSoundType) {
+        let filename: String
+        switch type {
+        case .open:
+            filename = "door_open"
+        case .close:
+            filename = "door_close"
+        }
+
+        var url: URL?
+
+        // Try bundle first
+        if let resourcePath = Bundle.main.resourcePath {
+            let path = (resourcePath as NSString)
+                .appendingPathComponent("Sounds")
+                .appending("/DoorSounds/\(filename).mp3")
+            if FileManager.default.fileExists(atPath: path) {
+                url = URL(fileURLWithPath: path)
+            }
+        }
+
+        // Try user directory
+        if url == nil {
+            let userPath = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".mactapa/sounds/DoorSounds/\(filename).mp3")
+            if FileManager.default.fileExists(atPath: userPath.path) {
+                url = userPath
+            }
+        }
+
+        guard let soundURL = url else {
+            print("[MacTapa] Door sound not found: \(filename).mp3 — place it in Resources/Sounds/DoorSounds/")
+            NSSound.beep()
+            return
+        }
+
+        do {
+            let player = try AVAudioPlayer(contentsOf: soundURL)
+            player.volume = volume
+            player.prepareToPlay()
+            player.play()
+
+            players.append(player)
+            players.removeAll { !$0.isPlaying }
+        } catch {
+            print("[MacTapa] Error playing door sound: \(error)")
+        }
+    }
 
     init() {
         loadAvailablePacks()

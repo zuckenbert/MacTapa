@@ -5,6 +5,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var slapDetector: SlapDetector!
     private var audioEngine: AudioEngine!
+    private var lidDetector: LidDetector!
     private var popover: NSPopover!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -18,8 +19,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        lidDetector = LidDetector(
+            onLidOpen: { [weak self] in
+                DispatchQueue.main.async {
+                    self?.audioEngine.playDoorSound(type: .open)
+                }
+            },
+            onLidClose: { [weak self] in
+                DispatchQueue.main.async {
+                    self?.audioEngine.playDoorSound(type: .close)
+                }
+            }
+        )
+
         setupMenuBar()
         slapDetector.start()
+        lidDetector.start()
         print("[MacTapa] App running. Look for the hand icon in the menu bar.")
     }
 
@@ -38,7 +53,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let hostingController = NSHostingController(
             rootView: MenuBarView(
                 audioEngine: audioEngine,
-                slapDetector: slapDetector
+                slapDetector: slapDetector,
+                lidDetector: lidDetector
             )
         )
         // Let SwiftUI calculate the ideal size

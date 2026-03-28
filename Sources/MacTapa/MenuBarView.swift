@@ -3,6 +3,7 @@ import SwiftUI
 struct MenuBarView: View {
     @ObservedObject var audioEngine: AudioEngine
     @ObservedObject var slapDetector: SlapDetector
+    @ObservedObject var lidDetector: LidDetector
 
     var body: some View {
         VStack(spacing: 14) {
@@ -101,6 +102,16 @@ struct MenuBarView: View {
                 }
                 .toggleStyle(.switch)
             }
+
+            // Section: Tampa (Lid)
+            Divider()
+            Toggle(isOn: $lidDetector.lidSoundEnabled) {
+                HStack {
+                    Image(systemName: lidDetector.lidSoundEnabled ? "door.left.hand.open" : "door.left.hand.closed")
+                    Text(lidDetector.lidSoundEnabled ? "Tampa Ativa" : "Tampa Desativada")
+                }
+            }
+            .toggleStyle(.switch)
 
             // Volume
             VStack(alignment: .leading, spacing: 4) {
