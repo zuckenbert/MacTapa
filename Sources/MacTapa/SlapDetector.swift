@@ -11,9 +11,10 @@ final class SlapDetector: ObservableObject {
     @Published var sensitivity: Double = 0.5 // 0.0 = very sensitive, 1.0 = less sensitive
     @Published var slapCount: Int = 0
     @Published var detectionMode: String = "Starting..."
+    @Published var cooldown: TimeInterval = 0.75 // 750ms default (matches spank), user-configurable
+    @Published var fastMode: Bool = false { didSet { cooldown = fastMode ? 0.35 : 0.75 } }
 
     private var lastSlapTime: Date = .distantPast
-    private let cooldown: TimeInterval = 1.0
     private let onSlap: (Double) -> Void
 
     // Accelerometer
@@ -22,15 +23,33 @@ final class SlapDetector: ObservableObject {
     private var reportBuffer: UnsafeMutablePointer<UInt8>?
     private var sensorThread: Thread?
 
-    // High-pass filter to remove gravity
-    private var lastRawX: Double = 0, lastRawY: Double = 0, lastRawZ: Double = 0
-    private var filtX: Double = 0, filtY: Double = 0, filtZ: Double = 0
-    private let hpAlpha: Double = 0.95
+    // 2nd-order Butterworth HPF at 4Hz (fs=125Hz after decimation)
+    // Coefficients computed via Audio EQ Cookbook (fc=4, fs=125, Q=0.7071)
+    private let bw_b0: Double =  0.86744
+    private let bw_b1: Double = -1.73488
+    private let bw_b2: Double =  0.86744
+    private let bw_a1: Double = -1.71710  // negated for y[n] = b*x + a*y convention
+    private let bw_a2: Double =  0.75252
+
+    // Butterworth filter state (x history and y history per axis)
+    private var bwX: (x1: Double, x2: Double, y1: Double, y2: Double) = (0, 0, 0, 0)
+    private var bwY: (x1: Double, x2: Double, y1: Double, y2: Double) = (0, 0, 0, 0)
+    private var bwZ: (x1: Double, x2: Double, y1: Double, y2: Double) = (0, 0, 0, 0)
 
     // STA/LTA detection (from Spank)
     private var staFast: Double = 0, ltaFast: Double = 0
     private var staMed: Double = 0, ltaMed: Double = 0
     private var warmupSamples: Int = 0
+
+    // CUSUM secondary confirmation
+    private var cusumPos: Double = 0
+    private var cusumNeg: Double = 0
+    private var cusumBaseline: Double = 0
+
+    // Runtime sample rate measurement
+    private var sampleRateCount: Int = 0
+    private var sampleRateStart: Date?
+    private var measuredSampleRate: Double = 125.0 // default estimate
 
     // Microphone fallback
     private var audioRecorder: AVAudioRecorder?
@@ -209,25 +228,36 @@ final class SlapDetector: ObservableObject {
         let gy = Double(rawY) / 65536.0
         let gz = Double(rawZ) / 65536.0
 
-        // High-pass filter: removes gravity, keeps sudden movements
-        // y[n] = alpha * (y[n-1] + x[n] - x[n-1])
-        filtX = hpAlpha * (filtX + gx - lastRawX)
-        filtY = hpAlpha * (filtY + gy - lastRawY)
-        filtZ = hpAlpha * (filtZ + gz - lastRawZ)
-        lastRawX = gx; lastRawY = gy; lastRawZ = gz
+        // 2nd-order Butterworth HPF: removes gravity, keeps sudden movements
+        let fX = butterworthHPF(input: gx, state: &bwX)
+        let fY = butterworthHPF(input: gy, state: &bwY)
+        let fZ = butterworthHPF(input: gz, state: &bwZ)
 
-        let magnitude = sqrt(filtX * filtX + filtY * filtY + filtZ * filtZ)
+        let magnitude = sqrt(fX * fX + fY * fY + fZ * fZ)
         let energy = magnitude * magnitude
 
-        // Warmup: skip first 200 samples (~1.5 sec) to let filters stabilize
+        // Sample rate measurement during warmup
         warmupSamples += 1
+        if warmupSamples == 1 {
+            sampleRateStart = Date()
+            sampleRateCount = 0
+        }
+        sampleRateCount += 1
         if warmupSamples < 200 {
-            // Just update LTAs during warmup, don't trigger
+            // Just update LTAs and CUSUM baseline during warmup, don't trigger
             ltaFast += (energy - ltaFast) / 100.0
             ltaMed += (energy - ltaMed) / 500.0
             staFast = ltaFast
             staMed = ltaMed
+            cusumBaseline += (energy - cusumBaseline) / 200.0
             return
+        }
+        if warmupSamples == 200, let start = sampleRateStart {
+            let elapsed = Date().timeIntervalSince(start)
+            if elapsed > 0 {
+                measuredSampleRate = Double(sampleRateCount) / elapsed
+                print(String(format: "[MacTapa] Measured sample rate: %.0f Hz (after decimation)", measuredSampleRate))
+            }
         }
 
         // STA/LTA detection (fast: STA=3, LTA=100)
@@ -241,14 +271,34 @@ final class SlapDetector: ObservableObject {
         let ratioFast = ltaFast > 1e-10 ? staFast / ltaFast : 0
         let ratioMed = ltaMed > 1e-10 ? staMed / ltaMed : 0
 
+        // CUSUM change-point detection (secondary confirmation)
+        let cusumDrift = energy - cusumBaseline
+        cusumPos = max(0, cusumPos + cusumDrift - 0.001)
+        cusumNeg = max(0, cusumNeg - cusumDrift - 0.001)
+        let cusumTriggered = cusumPos > 0.05 || cusumNeg > 0.05
+        // Slowly adapt baseline
+        cusumBaseline += (energy - cusumBaseline) / 2000.0
+
         // Threshold based on sensitivity
         let thresholdOn = 3.0 + (1.0 - sensitivity) * 1.5  // 3.0 to 4.5
-        let minAmplitude = 0.05 + sensitivity * 0.03  // 0.05g to 0.08g
+        let minAmplitude = 0.03 + sensitivity * 0.22  // 0.03g to 0.25g
 
-        if (ratioFast > thresholdOn || ratioMed > thresholdOn * 0.85) && magnitude > minAmplitude {
-            let intensity = min(magnitude / 0.2, 1.0)
+        let staLtaTriggered = ratioFast > thresholdOn || ratioMed > thresholdOn * 0.85
+        if staLtaTriggered && cusumTriggered && magnitude > minAmplitude {
+            let intensity = min(magnitude / 0.8, 1.0)  // 0.8g reference for practical slap range
             handleSlap(intensity: max(0.3, intensity))
+            // Reset CUSUM after detection
+            cusumPos = 0
+            cusumNeg = 0
         }
+    }
+
+    /// 2nd-order Butterworth high-pass filter (direct form I)
+    private func butterworthHPF(input x: Double, state s: inout (x1: Double, x2: Double, y1: Double, y2: Double)) -> Double {
+        let y = bw_b0 * x + bw_b1 * s.x1 + bw_b2 * s.x2 - bw_a1 * s.y1 - bw_a2 * s.y2
+        s.x2 = s.x1; s.x1 = x
+        s.y2 = s.y1; s.y1 = y
+        return y
     }
 
     private func readInt32LE(_ buffer: UnsafeMutablePointer<UInt8>, offset: Int) -> Int32 {

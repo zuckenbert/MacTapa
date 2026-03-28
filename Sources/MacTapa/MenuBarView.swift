@@ -81,6 +81,27 @@ struct MenuBarView: View {
                 Slider(value: $slapDetector.sensitivity, in: 0.0...1.0, step: 0.05)
             }
 
+            // Cooldown / Fast Mode
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("Cooldown")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text(String(format: "%.0fms", slapDetector.cooldown * 1000))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Toggle(isOn: $slapDetector.fastMode) {
+                    HStack {
+                        Image(systemName: slapDetector.fastMode ? "hare.fill" : "tortoise.fill")
+                        Text(slapDetector.fastMode ? "Rapido (350ms)" : "Normal (750ms)")
+                            .font(.caption)
+                    }
+                }
+                .toggleStyle(.switch)
+            }
+
             // Volume
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
