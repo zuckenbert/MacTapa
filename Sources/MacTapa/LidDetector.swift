@@ -3,12 +3,11 @@ import IOKit
 import IOKit.pwr_mgt
 
 // IOKit power message constants (C macros not importable in Swift)
-// iokit_common_msg(x) = (sys_iokit | sub_iokit_common | x) where sys_iokit = 0xE0000000
 private let kIOMessageSystemWillSleepValue:    UInt32 = 0xE0000280
 private let kIOMessageCanSystemSleepValue:     UInt32 = 0xE0000270
 private let kIOMessageSystemHasPoweredOnValue: UInt32 = 0xE0000300
 
-/// Detects lid open/close events via IOKit power notifications and plays door sounds.
+/// Detects lid open/close events via IOKit power notifications + clamshell state polling.
 final class LidDetector: ObservableObject {
     @Published var lidSoundEnabled: Bool = true
 
@@ -20,6 +19,10 @@ final class LidDetector: ObservableObject {
     private var notifyPortRef: IONotificationPortRef?
     private var notifierObject: io_object_t = 0
 
+    // Clamshell polling
+    private var pollTimer: Timer?
+    private var lastClamshellState: Bool? = nil
+
     init(onLidOpen: @escaping () -> Void, onLidClose: @escaping () -> Void) {
         self.onLidOpen = onLidOpen
         self.onLidClose = onLidClose
@@ -28,6 +31,7 @@ final class LidDetector: ObservableObject {
     // MARK: - Start / Stop
 
     func start() {
+        // Register for IOKit power notifications (sleep/wake)
         let context = Unmanaged.passUnretained(self).toOpaque()
 
         rootPort = IORegisterForSystemPower(
@@ -37,26 +41,32 @@ final class LidDetector: ObservableObject {
             &notifierObject
         )
 
-        guard rootPort != 0 else {
-            print("[MacTapa] LidDetector: Failed to register for system power notifications")
-            return
+        if rootPort != 0, let notifyPort = notifyPortRef {
+            CFRunLoopAddSource(
+                CFRunLoopGetMain(),
+                IONotificationPortGetRunLoopSource(notifyPort).takeUnretainedValue(),
+                .commonModes
+            )
+            print("[MacTapa] LidDetector: IOKit power notifications registered")
+        } else {
+            print("[MacTapa] LidDetector: IOKit registration failed, using polling only")
         }
 
-        guard let notifyPort = notifyPortRef else {
-            print("[MacTapa] LidDetector: notifyPortRef is nil")
-            return
+        // Also poll clamshell state for reliability
+        lastClamshellState = isClamshellClosed()
+        print("[MacTapa] LidDetector: Initial clamshell state: \(lastClamshellState == true ? "closed" : "open")")
+
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.checkClamshellChange()
         }
 
-        CFRunLoopAddSource(
-            CFRunLoopGetMain(),
-            IONotificationPortGetRunLoopSource(notifyPort).takeUnretainedValue(),
-            .commonModes
-        )
-
-        print("[MacTapa] LidDetector: Listening for lid open/close events")
+        print("[MacTapa] LidDetector: Listening for lid events (IOKit + polling)")
     }
 
     func stop() {
+        pollTimer?.invalidate()
+        pollTimer = nil
+
         if let notifyPort = notifyPortRef {
             CFRunLoopRemoveSource(
                 CFRunLoopGetMain(),
@@ -71,12 +81,35 @@ final class LidDetector: ObservableObject {
         print("[MacTapa] LidDetector: Stopped")
     }
 
+    // MARK: - Clamshell Polling
+
+    private func checkClamshellChange() {
+        let currentState = isClamshellClosed()
+        guard let last = lastClamshellState, currentState != last else {
+            if lastClamshellState == nil {
+                lastClamshellState = currentState
+            }
+            return
+        }
+
+        lastClamshellState = currentState
+
+        guard lidSoundEnabled else { return }
+
+        if currentState {
+            print("[MacTapa] LidDetector: Clamshell closed (poll) — playing door close")
+            onLidClose()
+        } else {
+            print("[MacTapa] LidDetector: Clamshell opened (poll) — playing door open")
+            onLidOpen()
+        }
+    }
+
     // MARK: - Clamshell State
 
     func isClamshellClosed() -> Bool {
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceNameMatching("IOPMrootDomain"))
         guard service != 0 else {
-            print("[MacTapa] LidDetector: Could not find IOPMrootDomain")
             return false
         }
         defer { IOObjectRelease(service) }
@@ -95,40 +128,28 @@ final class LidDetector: ObservableObject {
         return value
     }
 
-    // MARK: - Power Event Handling
+    // MARK: - Power Event Handling (backup)
 
     fileprivate func handlePowerEvent(messageType: UInt32, messageArgument: UnsafeMutableRawPointer?) {
         switch messageType {
         case kIOMessageSystemWillSleepValue:
             print("[MacTapa] LidDetector: System will sleep")
+            // Polling already handles lid close sound, just acknowledge sleep
             if lidSoundEnabled && isClamshellClosed() {
-                print("[MacTapa] LidDetector: Lid closed — playing door close sound")
-                onLidClose()
-                // Delay acknowledgement to allow sound playback (~2s)
                 DispatchQueue.global().asyncAfter(deadline: .now() + 2.0) { [weak self] in
                     guard let self = self else { return }
                     IOAllowPowerChange(self.rootPort, Int(bitPattern: messageArgument))
-                    print("[MacTapa] LidDetector: Acknowledged sleep (after sound delay)")
                 }
             } else {
                 IOAllowPowerChange(rootPort, Int(bitPattern: messageArgument))
-                print("[MacTapa] LidDetector: Acknowledged sleep (immediate)")
             }
 
         case kIOMessageCanSystemSleepValue:
-            // Always allow idle sleep immediately
             IOAllowPowerChange(rootPort, Int(bitPattern: messageArgument))
 
         case kIOMessageSystemHasPoweredOnValue:
-            print("[MacTapa] LidDetector: System has powered on")
-            if lidSoundEnabled {
-                // Small delay for audio subsystem to be ready
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                    guard let self = self, self.lidSoundEnabled else { return }
-                    print("[MacTapa] LidDetector: Playing door open sound")
-                    self.onLidOpen()
-                }
-            }
+            print("[MacTapa] LidDetector: System powered on")
+            // Polling handles lid open sound too
 
         default:
             break

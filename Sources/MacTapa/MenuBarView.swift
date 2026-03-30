@@ -127,18 +127,31 @@ struct MenuBarView: View {
                 Slider(value: $audioEngine.volume, in: 0...1)
             }
 
-            // Test Button
-            Button(action: {
-                audioEngine.playSound(intensity: 0.7)
-                slapDetector.slapCount += 1
-            }) {
-                HStack {
-                    Image(systemName: "speaker.wave.2.fill")
-                    Text("Testar Som")
+            // Test Buttons
+            HStack(spacing: 8) {
+                Button(action: {
+                    audioEngine.playSound(intensity: 0.7)
+                    slapDetector.slapCount += 1
+                }) {
+                    HStack {
+                        Image(systemName: "speaker.wave.2.fill")
+                        Text("Testar Tapa")
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
+                .buttonStyle(.borderedProminent)
+
+                Button(action: {
+                    audioEngine.playDoorSound(type: .open)
+                }) {
+                    HStack {
+                        Image(systemName: "door.left.hand.open")
+                        Text("Testar Tampa")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
             }
-            .buttonStyle(.borderedProminent)
 
             Divider()
 

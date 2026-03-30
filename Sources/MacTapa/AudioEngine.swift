@@ -40,29 +40,36 @@ final class AudioEngine: ObservableObject {
             filename = "door_close"
         }
 
+        let extensions = ["mp3", "m4a", "wav"]
         var url: URL?
 
         // Try bundle first
         if let resourcePath = Bundle.main.resourcePath {
-            let path = (resourcePath as NSString)
-                .appendingPathComponent("Sounds")
-                .appending("/DoorSounds/\(filename).mp3")
-            if FileManager.default.fileExists(atPath: path) {
-                url = URL(fileURLWithPath: path)
+            for ext in extensions {
+                let path = (resourcePath as NSString)
+                    .appendingPathComponent("Sounds")
+                    .appending("/DoorSounds/\(filename).\(ext)")
+                if FileManager.default.fileExists(atPath: path) {
+                    url = URL(fileURLWithPath: path)
+                    break
+                }
             }
         }
 
         // Try user directory
         if url == nil {
-            let userPath = FileManager.default.homeDirectoryForCurrentUser
-                .appendingPathComponent(".mactapa/sounds/DoorSounds/\(filename).mp3")
-            if FileManager.default.fileExists(atPath: userPath.path) {
-                url = userPath
+            for ext in extensions {
+                let userPath = FileManager.default.homeDirectoryForCurrentUser
+                    .appendingPathComponent(".mactapa/sounds/DoorSounds/\(filename).\(ext)")
+                if FileManager.default.fileExists(atPath: userPath.path) {
+                    url = userPath
+                    break
+                }
             }
         }
 
         guard let soundURL = url else {
-            print("[MacTapa] Door sound not found: \(filename).mp3 — place it in Resources/Sounds/DoorSounds/")
+            print("[MacTapa] Door sound not found: \(filename) — place it in Resources/Sounds/DoorSounds/")
             NSSound.beep()
             return
         }
@@ -122,7 +129,7 @@ final class AudioEngine: ObservableObject {
                     var isDir: ObjCBool = false
                     let fullPath = (soundsPath as NSString).appendingPathComponent(name)
                     FileManager.default.fileExists(atPath: fullPath, isDirectory: &isDir)
-                    return isDir.boolValue
+                    return isDir.boolValue && name != "DoorSounds"
                 }.sorted()
             }
         }
