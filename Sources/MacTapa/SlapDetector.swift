@@ -11,8 +11,8 @@ final class SlapDetector: ObservableObject {
     @Published var sensitivity: Double = 0.5 // 0.0 = very sensitive, 1.0 = less sensitive
     @Published var slapCount: Int = 0
     @Published var detectionMode: String = "Starting..."
-    @Published var cooldown: TimeInterval = 0.75 // 750ms default (matches spank), user-configurable
-    @Published var fastMode: Bool = false { didSet { cooldown = fastMode ? 0.35 : 0.75 } }
+    @Published var cooldown: TimeInterval = 0.12 // 120ms — button-like responsiveness
+    @Published var fastMode: Bool = false { didSet { cooldown = fastMode ? 0.08 : 0.12 } }
 
     private var lastSlapTime: Date = .distantPast
     private let onSlap: (Double) -> Void
@@ -23,13 +23,13 @@ final class SlapDetector: ObservableObject {
     private var reportBuffer: UnsafeMutablePointer<UInt8>?
     private var sensorThread: Thread?
 
-    // 2nd-order Butterworth HPF at 4Hz (fs=125Hz after decimation)
-    // Coefficients computed via Audio EQ Cookbook (fc=4, fs=125, Q=0.7071)
-    private let bw_b0: Double =  0.86744
-    private let bw_b1: Double = -1.73488
-    private let bw_b2: Double =  0.86744
-    private let bw_a1: Double = -1.71710  // negated for y[n] = b*x + a*y convention
-    private let bw_a2: Double =  0.75252
+    // 2nd-order Butterworth HPF at 12Hz (fs=125Hz after decimation)
+    // Rejects movement vibration (<10Hz) while passing slap impulses (30-100Hz+)
+    private let bw_b0: Double =  0.65204
+    private let bw_b1: Double = -1.30408
+    private let bw_b2: Double =  0.65204
+    private let bw_a1: Double = -1.17881
+    private let bw_a2: Double =  0.42895
 
     // Butterworth filter state (x history and y history per axis)
     private var bwX: (x1: Double, x2: Double, y1: Double, y2: Double) = (0, 0, 0, 0)
@@ -45,6 +45,15 @@ final class SlapDetector: ObservableObject {
     private var cusumPos: Double = 0
     private var cusumNeg: Double = 0
     private var cusumBaseline: Double = 0
+
+    // Kurtosis sliding window (detects "spikiness" — impacts >> 5, smooth motion ≈ 3)
+    private var kurtosisBuffer: [Double] = Array(repeating: 0, count: 32)
+    private var kurtosisIndex: Int = 0
+
+    // Impulse decay validation (slaps decay fast, movement stays elevated)
+    private var peakMagnitude: Double = 0
+    private var samplesSincePeak: Int = 0
+    private var impulseArmed: Bool = false
 
     // Runtime sample rate measurement
     private var sampleRateCount: Int = 0
@@ -236,6 +245,10 @@ final class SlapDetector: ObservableObject {
         let magnitude = sqrt(fX * fX + fY * fY + fZ * fZ)
         let energy = magnitude * magnitude
 
+        // Update kurtosis sliding window
+        kurtosisBuffer[kurtosisIndex % 32] = magnitude
+        kurtosisIndex += 1
+
         // Sample rate measurement during warmup
         warmupSamples += 1
         if warmupSamples == 1 {
@@ -273,23 +286,47 @@ final class SlapDetector: ObservableObject {
 
         // CUSUM change-point detection (secondary confirmation)
         let cusumDrift = energy - cusumBaseline
-        cusumPos = max(0, cusumPos + cusumDrift - 0.001)
-        cusumNeg = max(0, cusumNeg - cusumDrift - 0.001)
-        let cusumTriggered = cusumPos > 0.05 || cusumNeg > 0.05
+        cusumPos = max(0, cusumPos + cusumDrift - 0.003)
+        cusumNeg = max(0, cusumNeg - cusumDrift - 0.003)
+        let cusumTriggered = cusumPos > 0.08 || cusumNeg > 0.08
         // Slowly adapt baseline
         cusumBaseline += (energy - cusumBaseline) / 2000.0
 
         // Threshold based on sensitivity
         let thresholdOn = 3.0 + (1.0 - sensitivity) * 1.5  // 3.0 to 4.5
-        let minAmplitude = 0.03 + sensitivity * 0.22  // 0.03g to 0.25g
+        let minAmplitude = 0.08 + sensitivity * 0.17  // 0.08g to 0.25g (floor raised to reject typing)
 
-        let staLtaTriggered = ratioFast > thresholdOn || ratioMed > thresholdOn * 0.85
-        if staLtaTriggered && cusumTriggered && magnitude > minAmplitude {
-            let intensity = min(magnitude / 0.8, 1.0)  // 0.8g reference for practical slap range
-            handleSlap(intensity: max(0.3, intensity))
-            // Reset CUSUM after detection
-            cusumPos = 0
-            cusumNeg = 0
+        // Require BOTH fast AND medium STA/LTA to confirm (rejects single-keystroke spikes)
+        let staLtaTriggered = ratioFast > thresholdOn && ratioMed > thresholdOn * 0.7
+        let kurtosis = computeKurtosis()
+        let kurtosisTriggered = kurtosis > 5.0
+
+        // Phase 1: Arm on multi-gate threshold crossing
+        if staLtaTriggered && cusumTriggered && magnitude > minAmplitude && kurtosisTriggered && !impulseArmed {
+            impulseArmed = true
+            peakMagnitude = magnitude
+            samplesSincePeak = 0
+        }
+
+        // Phase 2: Validate impulse decay shape (slaps decay fast, movement stays elevated)
+        if impulseArmed {
+            samplesSincePeak += 1
+            if magnitude > peakMagnitude {
+                peakMagnitude = magnitude
+                samplesSincePeak = 0
+            }
+
+            // At 6 samples (~48ms): has signal decayed to <50% of peak?
+            if samplesSincePeak >= 6 {
+                if magnitude < peakMagnitude * 0.5 {
+                    let intensity = min(peakMagnitude / 0.8, 1.0)
+                    handleSlap(intensity: max(0.3, intensity))
+                    cusumPos = 0
+                    cusumNeg = 0
+                }
+                // Disarm immediately so next tap can arm right away
+                impulseArmed = false
+            }
         }
     }
 
@@ -299,6 +336,24 @@ final class SlapDetector: ObservableObject {
         s.x2 = s.x1; s.x1 = x
         s.y2 = s.y1; s.y1 = y
         return y
+    }
+
+    /// Excess kurtosis of the magnitude sliding window.
+    /// Normal/smooth motion ≈ 0 (Gaussian). Impact spikes >> 2.
+    private func computeKurtosis() -> Double {
+        let n = Double(kurtosisBuffer.count)
+        let mean = kurtosisBuffer.reduce(0, +) / n
+        var m2: Double = 0, m4: Double = 0
+        for v in kurtosisBuffer {
+            let d = v - mean
+            let d2 = d * d
+            m2 += d2
+            m4 += d2 * d2
+        }
+        m2 /= n
+        m4 /= n
+        guard m2 > 1e-20 else { return 0 }
+        return (m4 / (m2 * m2)) - 3.0
     }
 
     private func readInt32LE(_ buffer: UnsafeMutablePointer<UInt8>, offset: Int) -> Int32 {

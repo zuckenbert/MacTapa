@@ -27,69 +27,49 @@ final class AudioEngine: ObservableObject {
     private var soundURLs: [URL] = []
 
     private var sounds: [String: [URL]] = [:]
-    private var players: [AVAudioPlayer] = []
+
+    // AVAudioEngine for low-latency playback (PCM buffers stay decoded in memory)
+    private let engine = AVAudioEngine()
+    private let playerNode = AVAudioPlayerNode()
+    private let doorPlayerNode = AVAudioPlayerNode()
+    private var pcmBuffers: [URL: AVAudioPCMBuffer] = [:]
+    private var doorBuffers: [DoorSoundType: AVAudioPCMBuffer] = [:]
 
     // MARK: - Door Sounds
 
     func playDoorSound(type: DoorSoundType) {
-        let filename: String
-        switch type {
-        case .open:
-            filename = "door_open"
-        case .close:
-            filename = "door_close"
-        }
-
-        let extensions = ["mp3", "m4a", "wav"]
-        var url: URL?
-
-        // Try bundle first
-        if let resourcePath = Bundle.main.resourcePath {
-            for ext in extensions {
-                let path = (resourcePath as NSString)
-                    .appendingPathComponent("Sounds")
-                    .appending("/DoorSounds/\(filename).\(ext)")
-                if FileManager.default.fileExists(atPath: path) {
-                    url = URL(fileURLWithPath: path)
-                    break
-                }
-            }
-        }
-
-        // Try user directory
-        if url == nil {
-            for ext in extensions {
-                let userPath = FileManager.default.homeDirectoryForCurrentUser
-                    .appendingPathComponent(".mactapa/sounds/DoorSounds/\(filename).\(ext)")
-                if FileManager.default.fileExists(atPath: userPath.path) {
-                    url = userPath
-                    break
-                }
-            }
-        }
-
-        guard let soundURL = url else {
-            print("[MacTapa] Door sound not found: \(filename) — place it in Resources/Sounds/DoorSounds/")
+        guard let buffer = doorBuffers[type] else {
+            print("[MacTapa] No door buffer for: \(type)")
             NSSound.beep()
             return
         }
 
-        do {
-            let player = try AVAudioPlayer(contentsOf: soundURL)
-            player.volume = volume
-            player.prepareToPlay()
-            player.play()
+        doorPlayerNode.stop()
+        engine.mainMixerNode.outputVolume = volume
 
-            players.append(player)
-            players.removeAll { !$0.isPlaying }
-        } catch {
-            print("[MacTapa] Error playing door sound: \(error)")
+        if !engine.isRunning {
+            try? engine.start()
         }
+
+        doorPlayerNode.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
+        doorPlayerNode.play()
     }
 
     init() {
+        // Wire up AVAudioEngine graph: playerNode + doorPlayerNode → mainMixer → output
+        engine.attach(playerNode)
+        engine.attach(doorPlayerNode)
+        engine.connect(playerNode, to: engine.mainMixerNode, format: nil)
+        engine.connect(doorPlayerNode, to: engine.mainMixerNode, format: nil)
+        do {
+            try engine.start()
+        } catch {
+            print("[MacTapa] AVAudioEngine failed to start: \(error)")
+        }
+
         loadAvailablePacks()
         loadSounds(pack: currentPack)
+        loadDoorSounds()
     }
 
     func playSound(intensity: Double) {
@@ -106,17 +86,63 @@ final class AudioEngine: ObservableObject {
             url = soundURLs.randomElement()!
         }
 
-        do {
-            let player = try AVAudioPlayer(contentsOf: url)
-            player.volume = volume * Float(0.3 + intensity * 0.7)
-            player.prepareToPlay()
-            player.play()
-
-            players.append(player)
-            players.removeAll { !$0.isPlaying }
-        } catch {
-            print("[MacTapa] Error playing sound: \(error)")
+        guard let buffer = pcmBuffers[url] else {
+            print("[MacTapa] No PCM buffer for: \(url.lastPathComponent)")
+            return
         }
+
+        // Cut previous sound instantly, schedule new buffer — zero allocation
+        playerNode.stop()
+        engine.mainMixerNode.outputVolume = volume * Float(0.3 + intensity * 0.7)
+
+        // Restart engine if it stopped (e.g. audio route change)
+        if !engine.isRunning {
+            try? engine.start()
+        }
+
+        playerNode.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
+        playerNode.play()
+    }
+
+    // MARK: - Door Sound Loading
+
+    private func loadDoorSounds() {
+        for (type, filename) in [(DoorSoundType.open, "door_open"), (.close, "door_close")] {
+            if let url = findDoorSound(filename: filename),
+               let buffer = loadPCMBuffer(url: url) {
+                doorBuffers[type] = buffer
+                print("[MacTapa] Door sound loaded: \(filename)")
+            } else {
+                print("[MacTapa] Door sound not found: \(filename)")
+            }
+        }
+    }
+
+    private func findDoorSound(filename: String) -> URL? {
+        let extensions = ["mp3", "m4a", "wav"]
+
+        // Try bundle first
+        if let resourcePath = Bundle.main.resourcePath {
+            for ext in extensions {
+                let path = (resourcePath as NSString)
+                    .appendingPathComponent("Sounds")
+                    .appending("/DoorSounds/\(filename).\(ext)")
+                if FileManager.default.fileExists(atPath: path) {
+                    return URL(fileURLWithPath: path)
+                }
+            }
+        }
+
+        // Try user directory
+        for ext in extensions {
+            let userPath = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".mactapa/sounds/DoorSounds/\(filename).\(ext)")
+            if FileManager.default.fileExists(atPath: userPath.path) {
+                return userPath
+            }
+        }
+
+        return nil
     }
 
     // MARK: - Sound Loading
@@ -169,6 +195,14 @@ final class AudioEngine: ObservableObject {
         sounds[pack] = urls
         soundURLs = urls
 
+        // Pre-decode all sounds to PCM buffers (instant playback, zero I/O on tap)
+        pcmBuffers.removeAll()
+        for url in urls {
+            if let buffer = loadPCMBuffer(url: url) {
+                pcmBuffers[url] = buffer
+            }
+        }
+
         // Build readable names for UI
         soundNames = urls.map { url in
             url.deletingPathExtension().lastPathComponent
@@ -177,6 +211,21 @@ final class AudioEngine: ObservableObject {
         }
 
         print("[MacTapa] Loaded \(urls.count) sounds for pack '\(pack)'")
+    }
+
+    /// Decode audio file to PCM buffer for instant playback via AVAudioEngine
+    private func loadPCMBuffer(url: URL) -> AVAudioPCMBuffer? {
+        guard let file = try? AVAudioFile(forReading: url) else { return nil }
+        let format = file.processingFormat
+        let frameCount = AVAudioFrameCount(file.length)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return nil }
+        do {
+            try file.read(into: buffer)
+            return buffer
+        } catch {
+            print("[MacTapa] Failed to decode \(url.lastPathComponent): \(error)")
+            return nil
+        }
     }
 
     private func audioFiles(in directory: String) -> [URL] {

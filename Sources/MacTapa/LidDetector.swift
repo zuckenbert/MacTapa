@@ -56,7 +56,7 @@ final class LidDetector: ObservableObject {
         lastClamshellState = isClamshellClosed()
         print("[MacTapa] LidDetector: Initial clamshell state: \(lastClamshellState == true ? "closed" : "open")")
 
-        pollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             self?.checkClamshellChange()
         }
 
@@ -134,9 +134,10 @@ final class LidDetector: ObservableObject {
         switch messageType {
         case kIOMessageSystemWillSleepValue:
             print("[MacTapa] LidDetector: System will sleep")
-            // Polling already handles lid close sound, just acknowledge sleep
+            // Play close sound BEFORE allowing sleep (1.5s delay for playback)
             if lidSoundEnabled && isClamshellClosed() {
-                DispatchQueue.global().asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                onLidClose()
+                DispatchQueue.global().asyncAfter(deadline: .now() + 1.5) { [weak self] in
                     guard let self = self else { return }
                     IOAllowPowerChange(self.rootPort, Int(bitPattern: messageArgument))
                 }
